@@ -37,4 +37,10 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
         $this->middleware('auth')->only('logout');
     }
+
+    //追記
+    public function redirectPath()
+    {
+        return 'dashboard';
+    }
 }

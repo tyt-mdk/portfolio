@@ -69,4 +69,10 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
         ]);
     }
+
+    //追記
+    public function redirectPath()
+    {
+        return 'dashboard';
+    }
 }

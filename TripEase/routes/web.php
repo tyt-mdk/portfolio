@@ -22,6 +22,6 @@ Route::get('/', function () {
 /*追加*/
 Route::resource('users', UserController::class);
 Auth::routes();
-Route::resource('trip', TripController::class);
+Route::resource('trips', TripController::class);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

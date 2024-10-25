@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Trip;//追加
+use Illuminate\Support\Facades\Validator;//バリデーション追加
+use Illuminate\Support\Facades\Auth;//ユーザー情報
 
 class TripController extends Controller
 {
@@ -27,7 +30,21 @@ class TripController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $rules = [
+            'trip_title' => 'required',
+        ];
+        $messages = [
+            'required' => '必須項目です',
+        ];
+        Validator::make($request->all(),$rules,$messages)->validate();
+
+        $trip = new Trip;//モデルをインスタンス化
+        $trip->trip_title = $request->input('trip_title');//モデル->カラム名=値で、データを割り当てる
+        $trip->description = $request->input('description');//上記と同様
+        $trip->creator_id = Auth::id();//現在認証しているユーザーのIDを取得
+        $trip->start_date = 
+        $trip->save();//データベースに保存
+        return redirect('/trips');//リダイレクト
     }
 
     /**
