@@ -14,7 +14,7 @@ class TripController extends Controller
      */
     public function index()
     {
-        return view('trips.tripplanning');
+
     }
 
     /**
@@ -22,7 +22,8 @@ class TripController extends Controller
      */
     public function create()
     {
-        //
+        $user = Auth::user();
+        return view('trips.tripplanning', ['user' => $user]);
     }
 
     /**
@@ -44,7 +45,7 @@ class TripController extends Controller
         $trip->creator_id = Auth::id();//現在認証しているユーザーのIDを取得
         $trip->start_date = 
         $trip->save();//データベースに保存
-        return redirect('/trips');//リダイレクト
+        return redirect()->route('trips.show', ['trip' => $trip->id])->with('success', '旅行計画が作成されました！');//リダイレクト
     }
 
     /**
@@ -52,7 +53,9 @@ class TripController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $trip_id <- $id;
+        $trip = Trip::findOrFail($trip_id); //該当IDがなければ404エラーを返す
+        return view('trips.eachplanning', ['trip' => $trip]);
     }
 
     /**

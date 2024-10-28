@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // DB検索用の追加
+use Illuminate\Support\Facades\Auth;//ユーザー情報
 
 class UserController extends Controller
 {
@@ -11,7 +13,8 @@ class UserController extends Controller
      */
     public function index()
     {
-        return view('trips.dashboard');
+        $user = Auth::user();
+        return view('trips.dashboard', ['user' => $user]);
     }
 
     /**

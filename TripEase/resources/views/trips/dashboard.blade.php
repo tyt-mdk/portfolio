@@ -4,44 +4,101 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- レスポンシブ -->
+    <script src="https://kit.fontawesome.com/ef96165231.js" crossorigin="anonymous"></script><!-- FontAwesome -->
     <title>TripEase</title>
 
     @vite('resources/css/app.css')
 </head>
-<body class="flex flex-col min-h-[100vh]">
+<body class="flex flex-col min-h-[100vh] text-[0.65rem] bg-slate-100 text-slate-800 font-notosans">
     <header>
     </header>
-    <main>
-        <div class="shadow-md bg-slate-50">
-            <p class="text-2xl">Create New Trip</p>
-            <div class="flex">
-                <div class="flex-none box-content h-15 w-15 p-1">
-                    <p class="text-xl font-poppins text-center">2</p>
-                    <p class="text-sm">未タスク</p>
+    <main class="flex-grow">
+        <div class="rounded shadow-md bg-slate-50 grid grid-flow-col justify-stretch p-4 my-10 mx-5 h-40">
+            <div class="flex flex-col justify-between">
+                <p class="text-2xl text-slate-950">Create New Trip</p>
+                <div class="flex">
+                    <div class="flex-none box-content h-15 w-15 p-1">
+                        <p class="text-lg font-poppins text-center">2</p>
+                        <p>未タスク</p>
+                    </div>
+                    <div class="flex-none box-content h-15 w-15 p-1">
+                        <p class="text-lg font-poppins text-center">5</p>
+                        <p>計画参加中</p>
+                    </div>
+                    <div class="flex-none box-content h-15 w-15 p-1">
+                        <p class="text-lg font-poppins text-center">3</p>
+                        <p>管理中</p>
+                    </div>
                 </div>
-                <div class="flex-none box-content h-15 w-15 p-1">
-                    <p class="text-xl font-poppins text-center">5</p>
-                    <p class="text-sm">計画参加中</p>
+            </div>
+            <div class="place-content-end">
+                <p class="text-center text-sm">{{ $user->name }}さん</p>
+            </div>
+        </div>
+        <div class="h-30 grid grid-cols-2 gap-2 content-evenly box-border p-5 font-semibold">
+            <p class="text-center shadow-md rounded-full box-content p-2 bg-sky-300 text-white"><a href="{{ route('trips.create') }}"><i class="fa-solid fa-suitcase-rolling box-content w-6"></i>旅行を新しく計画する</a></p>
+            <p class="text-center shadow-md rounded-full box-content p-2 bg-slate-50"><a href=""><i class="fa-solid fa-ticket box-content w-6"></i>URLで参加する</a></p>
+            <p class="text-center shadow-md rounded-full box-content p-2 bg-slate-500 text-white"><a href=""><i class="fa-solid fa-pen-nib box-content w-6"></i>管理中の計画を編集する</a></p>
+            <p class="text-center shadow-md rounded-full box-content p-2 bg-slate-50"><a href="">コンテンツ</a></p>
+        </div>
+        <div>
+            <p class="box-content p-4 text-lg font-semibold">通知一覧</p>
+            <div class="mx-4 divide-y divide-dashed">
+                <div class="flex flex-row justify-between">
+                    <div class="mb-4">
+                        <p class="text-base">大阪旅行計画</p>
+                        <p>"日程調整"の期限が迫っているよ！</p>
+                        <div class="flex flex-row">
+                            <div class="flex flex-row bg-sky-200 justify-around h-4 w-8 text-center">
+                                <p><i class="fa-solid fa-clipboard-check text-sky-600"></i></p>
+                                <p>8</p>
+                            </div>
+                            <p class="">2024年10月10日 15:14(編集済み)</p>
+                        </div>
+                    </div>
+                    <div class="place-content-end text-sm">
+                        <a href="{{ route('trips.index') }}"><i class="fa-solid fa-ellipsis"></i></a>
+                    </div>
                 </div>
-                <div class="flex-none box-content h-15 w-15 p-1">
-                    <p class="text-xl font-poppins text-center">3</p>
-                    <p class="text-sm">管理中</p>
+                <div class="flex flex-row justify-between">
+                    <div class="mb-4">
+                        <p class="text-base">北海道旅行計画</p>
+                        <p>"宿泊地"の投票が終わったみたい！</p>
+                        <div class="flex flex-row">
+                            <div class="flex flex-row bg-sky-200 justify-around h-4 w-8 text-center">
+                                <p><i class="fa-solid fa-clipboard-check text-sky-600"></i></p>
+                                <p>4</p>
+                            </div>
+                            <p class="">2024年9月29日 23:48(編集済み)</p>
+                        </div>
+                    </div>
+                    <div class="place-content-end text-sm">
+                        <a href=""><i class="fa-solid fa-ellipsis"></i></a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="h-20 grid grid-cols-2 gap-2 content-evenly">
-            <p class="text-center"><a href="{{ route('trips.index') }}">旅行を新しく計画する</a></p>
-            <p class="text-center"><a href="">URLで参加する</a></p>
-            <p class="text-center"><a href="">管理中の計画を編集する</a></p>
-            <p class="text-center"><a href="">コンテンツ</a></p>
-        </div>
-        <div>
-            <p>通知一覧</p>
-            <p>「○○旅行計画」の"日程調整"の期限が迫っているよ！</p>
-            <p>「××旅行計画」の"宿泊地"の投票が終わったみたい！</p>
-        </div>
     </main>
-    <footer>
+    <footer class="bg-slate-50">
+        <div class="flex justify-around text-center h-20 text-sm">
+                <a href="">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <p>探す</p>
+                </a>
+                <a href="">
+                    <i class="fa-solid fa-user-group"></i>
+                    <p>フレンド</p>
+                </a>
+                <a href="">
+                    <i class="fa-regular fa-comment-dots"></i>
+                    <p>チャット</p>
+                </a>
+                <a href="">
+                    <i class="fa-solid fa-bars"></i>
+                    <p>メニュー</p>
+                </a>
+        </div>
     </footer>
 </body>
 </html>

@@ -11,7 +11,7 @@
     </header>
     <main>
         <p>旅行計画作成ページ</p>
-        <form action="/trips" method="post">
+        <form action="{{ route('trips.store') }}" method="post">
             @csrf
             <div>
                 <p><label>旅行タイトル<input type="text" name="trip_title"></label></p>

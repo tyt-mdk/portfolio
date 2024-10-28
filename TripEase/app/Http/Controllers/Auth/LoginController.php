@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+// 以下追記
+use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
@@ -38,9 +40,12 @@ class LoginController extends Controller
         $this->middleware('auth')->only('logout');
     }
 
-    //追記
-    public function redirectPath()
+    //追記 ログイン後のリダイレクト先
+    public function redirectTo()
     {
-        return 'dashboard';
+        if(! Auth::user()) {
+            return '/';
+        }
+        return route('users.index', ['user' => Auth::user()]);
     }
 }
