@@ -14,8 +14,8 @@
         <form action="{{ route('trips.store') }}" method="post">
             @csrf
             <div>
-                <p><label>旅行タイトル<input type="text" name="trip_title"></label></p>
-                @error('trip_title')
+                <p><label>旅行タイトル<input type="text" name="title"></label></p>
+                @error('title')
                     <div><p>{{  $message }}</p></div>
                 @enderror
                 <p><label>概要メモ<input type="text" name="description"></label></p>

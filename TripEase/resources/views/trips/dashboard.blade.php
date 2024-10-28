@@ -37,47 +37,35 @@
             </div>
         </div>
         <div class="h-30 grid grid-cols-2 gap-2 content-evenly box-border p-5 font-semibold">
-            <p class="text-center shadow-md rounded-full box-content p-2 bg-sky-300 text-white"><a href="{{ route('trips.create') }}"><i class="fa-solid fa-suitcase-rolling box-content w-6"></i>旅行を新しく計画する</a></p>
-            <p class="text-center shadow-md rounded-full box-content p-2 bg-slate-50"><a href=""><i class="fa-solid fa-ticket box-content w-6"></i>URLで参加する</a></p>
-            <p class="text-center shadow-md rounded-full box-content p-2 bg-slate-500 text-white"><a href=""><i class="fa-solid fa-pen-nib box-content w-6"></i>管理中の計画を編集する</a></p>
-            <p class="text-center shadow-md rounded-full box-content p-2 bg-slate-50"><a href="">コンテンツ</a></p>
+            <a href="{{ route('trips.create') }}"><p class="text-center shadow-md rounded-full box-content p-2 bg-sky-300 text-white"><i class="fa-solid fa-suitcase-rolling box-content w-6"></i>旅行を新しく計画する</p></a>
+            <a href=""><p class="text-center shadow-md rounded-full box-content p-2 bg-slate-50"><i class="fa-solid fa-ticket box-content w-6"></i>URLで参加する</p></a>
+            <a href=""><p class="text-center shadow-md rounded-full box-content p-2 bg-slate-500 text-white"><i class="fa-solid fa-pen-nib box-content w-6"></i>管理中の計画を編集する</p></a>
+            <a href=""><p class="text-center shadow-md rounded-full box-content p-2 bg-slate-50">コンテンツ</p></a>
         </div>
         <div>
             <p class="box-content p-4 text-lg font-semibold">通知一覧</p>
+            @if ($trips->isNotEmpty())
             <div class="mx-4 divide-y divide-dashed">
+                @foreach($trips as $trip)
                 <div class="flex flex-row justify-between">
                     <div class="mb-4">
-                        <p class="text-base">大阪旅行計画</p>
+                        <p class="text-base">{{ $trip->title }}</p>
                         <p>"日程調整"の期限が迫っているよ！</p>
                         <div class="flex flex-row">
                             <div class="flex flex-row bg-sky-200 justify-around h-4 w-8 text-center">
                                 <p><i class="fa-solid fa-clipboard-check text-sky-600"></i></p>
                                 <p>8</p>
                             </div>
-                            <p class="">2024年10月10日 15:14(編集済み)</p>
+                            <p class="">{{ $trip->updated_at }}(編集済み)</p>
                         </div>
                     </div>
                     <div class="place-content-end text-sm">
-                        <a href="{{ route('trips.index') }}"><i class="fa-solid fa-ellipsis"></i></a>
+                        <a href="{{ route('trips.show', ['trip' => $trip->id]) }}"><i class="fa-solid fa-ellipsis"></i></a>
                     </div>
                 </div>
-                <div class="flex flex-row justify-between">
-                    <div class="mb-4">
-                        <p class="text-base">北海道旅行計画</p>
-                        <p>"宿泊地"の投票が終わったみたい！</p>
-                        <div class="flex flex-row">
-                            <div class="flex flex-row bg-sky-200 justify-around h-4 w-8 text-center">
-                                <p><i class="fa-solid fa-clipboard-check text-sky-600"></i></p>
-                                <p>4</p>
-                            </div>
-                            <p class="">2024年9月29日 23:48(編集済み)</p>
-                        </div>
-                    </div>
-                    <div class="place-content-end text-sm">
-                        <a href=""><i class="fa-solid fa-ellipsis"></i></a>
-                    </div>
-                </div>
+                @endforeach
             </div>
+            @endif
         </div>
     </main>
     <footer class="bg-slate-50">

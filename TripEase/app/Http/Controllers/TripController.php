@@ -14,7 +14,8 @@ class TripController extends Controller
      */
     public function index()
     {
-
+        $trips = Trip::all();
+        return view('trips.dashboard', compact('trips'));
     }
 
     /**
@@ -32,7 +33,7 @@ class TripController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'trip_title' => 'required',
+            'title' => 'required',
         ];
         $messages = [
             'required' => '必須項目です',
@@ -40,10 +41,9 @@ class TripController extends Controller
         Validator::make($request->all(),$rules,$messages)->validate();
 
         $trip = new Trip;//モデルをインスタンス化
-        $trip->trip_title = $request->input('trip_title');//モデル->カラム名=値で、データを割り当てる
+        $trip->title = $request->input('title');//モデル->カラム名=値で、データを割り当てる
         $trip->description = $request->input('description');//上記と同様
         $trip->creator_id = Auth::id();//現在認証しているユーザーのIDを取得
-        $trip->start_date = 
         $trip->save();//データベースに保存
         return redirect()->route('trips.show', ['trip' => $trip->id])->with('success', '旅行計画が作成されました！');//リダイレクト
     }
@@ -53,8 +53,7 @@ class TripController extends Controller
      */
     public function show(string $id)
     {
-        $trip_id <- $id;
-        $trip = Trip::findOrFail($trip_id); //該当IDがなければ404エラーを返す
+        $trip = Trip::findOrFail($id); //該当IDがなければ404エラーを返す
         return view('trips.eachplanning', ['trip' => $trip]);
     }
 

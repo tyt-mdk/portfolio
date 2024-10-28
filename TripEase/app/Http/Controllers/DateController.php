@@ -3,20 +3,15 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // DB検索用の追加
-use Illuminate\Support\Facades\Auth;//ユーザー情報
-use App\Models\Trip;//追加
 
-class UserController extends Controller
+class DateController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $user = Auth::user();
-        $trips = Trip::all();
-        return view('trips.dashboard', ['user' => $user], compact('trips'));
+        //
     }
 
     /**

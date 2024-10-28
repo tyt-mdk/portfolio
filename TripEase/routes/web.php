@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 /*追加*/
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\DateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,5 +24,6 @@ Route::get('/', function () {
 Route::resource('users', UserController::class);
 Auth::routes();
 Route::resource('trips', TripController::class);
+Route::resource('dates', DateController::class);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
