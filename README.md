@@ -23,8 +23,9 @@
   https://www.figma.com/file/lNlNY7aaaa1KXMoVPWAPSU/%E7%84%A1%E9%A1%8C?type=design&node-id=0%3A1&mode=design&t=sZFg24N9nWyVZjQC-1
   https://www.figma.com/board/Pf9ToUWj3I90WBVBsVJsox/%E7%84%A1%E9%A1%8C?node-id=0-1&t=TwGHaNXVB2RaDfuB-1
 
-## やること(4/17時点)
-- 要件定義書や画面遷移図を作成
+## やること(12/27時点)
+- 旅行計画作成機能　済
+- 予定日調整機能
 - __問題点__ 現在なし
 - __解決策__ 現在なし
 
