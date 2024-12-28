@@ -18,7 +18,7 @@
         <p>{{ $trip->description }}</p>
         <a href=""><p class="">編集</p></a>
         <p>{{ $trip->start_date }}～{{ $trip->end_date }}</p>
-        <a href="{{ route('dates.create', ['trip' => $trip->id]) }}"><p class="">日程調整する</p></a>
+        <a href="{{ route('schedule.show', $trip->id) }}"><p class="">日程調整する</p></a>
     </main>
     <footer>
     </footer>

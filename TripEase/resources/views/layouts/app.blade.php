@@ -17,6 +17,9 @@
 
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.0.0/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.0.0/main.min.js"></script>
+
 </head>
 <body>
     <div id="app">
