@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\CandidateDateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,5 +29,8 @@ Route::get('/trips/{tripId}/schedule', [ScheduleController::class, 'showSchedule
 Route::post('/trips/{tripId}/add-date', [ScheduleController::class, 'addCandidateDate'])->name('schedule.addDate');
 Route::post('/trips/{tripId}/vote-date', [ScheduleController::class, 'voteDate'])->name('schedule.voteDate');
 Route::post('/trips/{tripId}/finalize', [ScheduleController::class, 'finalizeSchedule'])->name('schedule.finalize');
+
+Route::get('/get-candidate-dates', [CandidateDateController::class, 'getCandidateDates']);
+Route::post('/set-judgement', [CandidateDateController::class, 'setJudgement']);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

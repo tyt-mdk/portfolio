@@ -36,13 +36,13 @@ class ScheduleController extends Controller
     public function voteDate(Request $request, $tripId)
     {
         $request->validate([
-            'candidate_date_id' => 'required|exists:candidate_dates,id',
+            'date_id' => 'required|exists:dates,id',
             'judgement' => 'required|in:〇,△,×'
         ]);
 
         DateVote::updateOrCreate(
             [
-                'candidate_date_id' => $request->candidate_date_id,
+                'date_id' => $request->date_id,
                 'user_id' => auth()->id(),
             ],
             ['judgement' => $request->judgement]

@@ -13,6 +13,6 @@ class DateVote extends Model
 
     public function candidateDate()
     {
-        return $this->belongsTo(candidateDate::class, 'date_id');
+        return $this->belongsTo(candidateDate::class, 'date_id', 'id');
     }
 }

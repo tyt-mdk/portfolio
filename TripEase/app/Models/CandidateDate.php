@@ -15,6 +15,6 @@ class CandidateDate extends Model
     }
     public function datevotes()
     {
-        return $this->hasMany(DateVote::class);
+        return $this->hasMany(DateVote::class, 'date_id', 'id');
     }
 }
