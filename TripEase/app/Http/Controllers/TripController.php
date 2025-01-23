@@ -80,4 +80,47 @@ class TripController extends Controller
     {
         //
     }
+
+    public function voteDateJudgement(Request $request, Trip $trip)
+    {
+        \Log::info('Request all:', $request->all());
+
+        try {
+            $validated = $request->validate([
+                'date_id' => 'required|exists:candidate_dates,id',  // テーブル名を修正
+                'judgement' => 'required|in:〇,△,×'
+            ]);
+
+            $vote = DateVote::updateOrCreate(
+                [
+                    'user_id' => auth()->id(),
+                    'trip_id' => $trip->id,  // trip_idも追加
+                    'date_id' => $validated['date_id']
+                ],
+                [
+                    'judgement' => $validated['judgement']
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => '判定を保存しました。',
+                'data' => $vote
+            ]);
+
+        } catch (ValidationException $e) {
+            \Log::error('Validation error:', $e->errors());
+            return response()->json([
+                'success' => false,
+                'message' => 'バリデーションエラー',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error:', ['message' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'エラーが発生しました: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

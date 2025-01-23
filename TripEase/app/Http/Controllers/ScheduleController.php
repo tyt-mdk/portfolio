@@ -9,15 +9,17 @@ use App\Models\Trip;
 
 class ScheduleController extends Controller
 {
-    public function showSchedule($tripId)
+    public function showDatePlanning(Trip $trip)
     {
-        $trip = Trip::findOrFail($tripId);
-        $candidateDates = CandidateDate::with('datevotes')->where('trip_id', $tripId)->get();
+        $candidateDates = CandidateDate::select('candidate_dates.*', 'date_votes.judgement')
+            ->leftJoin('date_votes', function($join) {
+                $join->on('candidate_dates.id', '=', 'date_votes.date_id')
+                    ->where('date_votes.user_id', '=', auth()->id());
+            })
+            ->where('candidate_dates.trip_id', $trip->id)  // テーブル名を明示的に指定
+            ->get();
 
-        return view('trips.dateplanning', [
-            'trip' => $trip,
-            'candidateDates' => $candidateDates
-        ]);
+        return view('trips.dateplanning', compact('trip', 'candidateDates'));
     }
 
     public function addCandidateDate(Request $request, $tripId)
@@ -33,22 +35,49 @@ class ScheduleController extends Controller
         return redirect()->route('schedule.show', $tripId);
     }
 
-    public function voteDate(Request $request, $tripId)
+    public function voteDate(Request $request, Trip $trip)
     {
-        $request->validate([
-            'date_id' => 'required|exists:dates,id',
-            'judgement' => 'required|in:〇,△,×'
-        ]);
+        \Log::info('Request all:', $request->all());
+        \Log::info('Trip ID:', ['id' => $trip->id]); // デバッグ用
 
-        DateVote::updateOrCreate(
-            [
-                'date_id' => $request->date_id,
-                'user_id' => auth()->id(),
-            ],
-            ['judgement' => $request->judgement]
-        );
+        try {
+            $validated = $request->validate([
+                'date_id' => 'required|exists:candidate_dates,id',
+                'judgement' => 'required|in:〇,△,×'
+            ]);
 
-        return redirect()->route('schedule.show', $tripId);
+            // trip_idを明示的に設定
+            $vote = DateVote::updateOrCreate(
+                [
+                    'user_id' => auth()->id(),
+                    'trip_id' => $trip->id,  // ここが重要
+                    'date_id' => $validated['date_id']
+                ],
+                [
+                    'judgement' => $validated['judgement']
+                ]
+            );
+
+            \Log::info('Vote created:', $vote->toArray());
+
+            return response()->json([
+                'success' => true,
+                'message' => '判定を保存しました。',
+                'data' => $vote
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in voteDate:', [
+                'message' => $e->getMessage(),
+                'trip_id' => $trip->id,
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'エラーが発生しました: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function finalizeSchedule(Request $request, $tripId)
