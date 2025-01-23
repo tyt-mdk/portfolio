@@ -14,96 +14,59 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales-all.min.js"></script>
 
     <style>
-        /* リセットスタイル */
-        .fc * {
-            border: none !important;
-        }
-    
-        .fc table {
-            border-collapse: separate !important;
-            border-spacing: 2px !important;
-        }
-    
-        /* 年月表示のスタイル */
-        .fc .fc-toolbar {
-            margin-bottom: 1.5rem !important;
-        }
-    
-        .fc .fc-toolbar-title {
-            font-size: 1.25rem;
-            font-weight: normal;
-            color: #1f2937;
-            text-align: left;
-            padding-left: 0.5rem;
-        }
-    
-        /* ナビゲーションボタン */
-        .fc .fc-button-primary {
-            background: transparent;
-            border: none;
-            color: #4b5563;
-            padding: 0 12px;
-            font-size: 1.2rem;
-        }
-    
-        .fc .fc-button-primary:hover {
-            color: #1f2937;
-            background: transparent !important;
-        }
-    
-        /* カレンダーセルのスタイル */
+        /* 今日の日付のスタイル */
         .fc .fc-daygrid-day {
-            height: 45px !important;
-            max-height: 45px !important;
-            padding: 0 !important;
+            position: relative !important;
         }
-    
-        .fc .fc-daygrid-day-frame {
-            height: 45px !important;
-            max-height: 45px !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: flex-start !important;
+
+        /* FullCalendarのデフォルトの今日のハイライトを無効化 */
+        .fc .fc-day-today {
+            background: none !important;
         }
-    
-        /* 日付表示の基本スタイル */
+
+        .today-bg {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background-color: rgb(219 234 254 / 0.5) !important;  /* bg-blue-100 with opacity */
+            margin: 0 !important;  /* マージンを0に */
+            z-index: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* 日付の数字を前面に */
         .fc .fc-daygrid-day-top {
-            display: flex !important;
-            justify-content: center !important;
-            padding: 4px 0 0 0 !important;
-            flex: none !important;
+            position: relative !important;
+            z-index: 1 !important;
         }
-    
-        /* 不要な要素を完全に非表示 */
-        .fc-daygrid-day-events,
-        .fc-daygrid-day-bg,
-        .fc-daygrid-day-bottom {
-            display: none !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
+
+        /* 曜日ヘッダーのスタイル */
+        .fc .fc-col-header-cell {
+            background-color: rgb(100 116 139) !important;  /* bg-slate-500 */
         }
-    
-        /* 曜日ヘッダー */
+
         .fc .fc-col-header-cell-cushion {
-            font-size: 0.875rem;
-            color: #4b5563;
-            font-weight: normal;
-            padding: 8px 0;
+            color: rgb(248 250 252) !important;  /* text-slate-50 */
+            font-weight: normal !important;
+            padding: 8px 0 !important;
         }
     </style>
 
     <title>Tripease</title>
     @vite('resources/css/app.css')
 </head>
-<body>
+<body class="flex flex-col min-h-[100vh] text-[0.65rem] bg-slate-100 text-slate-800 font-notosans">
     <header>
     </header>
     <main>
-        <h1>{{ $trip->title }}の日程調整</h1>
+        <h1 class="text-2xl text-slate-950">{{ $trip->title }}の日程調整</h1>
 
         <!-- カレンダー -->
-        <div id="calendar"></div>
+        <div class="rounded shadow-md bg-slate-50 grid grid-flow-col justify-stretch p-4 my-10 mx-5">
+            <div id="calendar"></div>
+        </div>
 
         <!-- 候補日追加 -->
         <h2>候補日を追加する</h2>
@@ -136,92 +99,7 @@
                 @endforeach
             ];
 
-            function applyDateStyles() {
-                console.log('Applying styles for dates:', candidateDates); // デバッグ用
-
-                // 既存のスタイルをクリア
-                document.querySelectorAll('.date-bg').forEach(el => {
-                    el.remove();
-                });
-
-                // 今日の日付のスタイル
-                document.querySelectorAll('.fc-day-today').forEach(el => {
-                    // 既存のtoday用のクラスを削除
-                    el.classList.remove('fc-day-today');
-                    // グレーの円形背景を追加
-                    el.classList.add('relative');
-                    const todayCircle = document.createElement('div');
-                    todayCircle.className = 'date-bg absolute inset-0 m-1 bg-gray-100 rounded-full -z-10';
-                    el.insertBefore(todayCircle, el.firstChild);
-                });
-
-                // 候補日のスタイル適用
-                candidateDates.forEach(date => {
-                    console.log('Processing date:', date); // デバッグ用
-                    const cells = document.querySelectorAll('.fc-daygrid-day');
-                    cells.forEach(cell => {
-                        const cellDate = cell.getAttribute('data-date');
-                        if (cellDate === date.date) {
-                            cell.classList.add('relative');
-                            
-                            // 既存の背景要素を削除
-                            const existingBg = cell.querySelector('.date-bg');
-                            if (existingBg) {
-                                existingBg.remove();
-                            }
-                            
-                            // 基本の候補日スタイル（判定なし）
-                            if (!date.judgement) {
-                                const circle = document.createElement('div');
-                                circle.className = 'date-bg absolute inset-0 m-1 bg-sky-300/30 rounded-full -z-10';
-                                cell.insertBefore(circle, cell.firstChild);
-                            }
-                            
-                            // 判定に応じたスタイル
-                            if (date.judgement) {
-                                console.log('Applying judgement style:', date.judgement); // デバッグ用
-                                const shape = document.createElement('div');
-                                shape.className = 'date-bg absolute inset-0 m-1 -z-10';
-                                
-                                switch (date.judgement) {
-                                    case '〇':
-                                        shape.innerHTML = `
-                                            <div class="absolute inset-0 bg-emerald-200/50 rounded-full"></div>
-                                        `;
-                                        break;
-                                    case '△':
-                                        shape.innerHTML = `
-                                            <div class="absolute inset-0 flex items-center justify-center">
-                                                <div class="w-4/5 h-4/5 bg-amber-200/50"
-                                                    style="clip-path: polygon(50% 0%, 100% 100%, 0% 100%);">
-                                                </div>
-                                            </div>
-                                        `;
-                                        break;
-                                    case '×':
-                                        shape.innerHTML = `
-                                            <div class="absolute inset-0 flex items-center justify-center">
-                                                <div class="w-4/5 h-4/5 relative">
-                                                    <div class="absolute inset-0 bg-rose-200/50"
-                                                        style="clip-path: polygon(
-                                                            20% 0%, 50% 30%, 80% 0%, 100% 20%, 70% 50%, 
-                                                            100% 80%, 80% 100%, 50% 70%, 20% 100%, 
-                                                            0% 80%, 30% 50%, 0% 20%
-                                                        );">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `;
-                                        break;
-                                }
-                                
-                                cell.insertBefore(shape, cell.firstChild);
-                            }
-                        }
-                    });
-                });
-            }
-
+                // createJudgementBox関数を追加
             function createJudgementBox(candidateDate) {
                 const box = document.createElement('div');
                 box.classList.add('judgement-box', 
@@ -240,17 +118,20 @@
                     </div>
                 `;
 
+                // クリック外での閉じる処理を追加
+                setTimeout(() => {
+                    document.addEventListener('click', function closeBox(e) {
+                        if (!box.contains(e.target)) {
+                            box.remove();
+                            document.removeEventListener('click', closeBox);
+                        }
+                    });
+                }, 0);
+
+                // ボタンクリックのイベントリスナーを追加
                 box.querySelectorAll('button').forEach(button => {
                     button.addEventListener('click', async () => {
                         try {
-                            const postData = {
-                                date_id: candidateDate.id,
-                                judgement: button.dataset.judgement,
-                                trip_id: {{ $trip->id }}
-                            };
-
-                            console.log('Sending data:', postData);
-
                             const response = await fetch(`/trips/{{ $trip->id }}/vote-date`, {
                                 method: 'POST',
                                 headers: {
@@ -258,16 +139,19 @@
                                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                                     'Accept': 'application/json'
                                 },
-                                body: JSON.stringify(postData)
+                                body: JSON.stringify({
+                                    date_id: candidateDate.id,
+                                    judgement: button.dataset.judgement,
+                                    trip_id: {{ $trip->id }}
+                                })
                             });
 
-                            const data = await response.json();
-                            console.log('Response data:', data);
-
                             if (!response.ok) {
-                                throw new Error(data.message || 'エラーが発生しました');
+                                throw new Error('Network response was not ok');
                             }
 
+                            const data = await response.json();
+                            
                             // candidateDatesの該当データを更新
                             const targetDate = candidateDates.find(d => d.id === candidateDate.id);
                             if (targetDate) {
@@ -279,13 +163,73 @@
                             box.remove();
 
                         } catch (error) {
-                            console.error('Error details:', error);
+                            console.error('Error:', error);
                             alert('判定の保存に失敗しました。');
                         }
                     });
                 });
 
                 return box;
+            }
+
+            function applyDateStyles() {
+                // 既存のスタイルをクリア
+                document.querySelectorAll('.date-bg').forEach(el => {
+                    el.remove();
+                });
+
+                // カレンダーの全セルに対して処理
+                document.querySelectorAll('.fc-daygrid-day').forEach(el => {
+                    const cellDate = el.getAttribute('data-date');
+                    
+                    // 候補日のスタイリング
+                    const candidateDate = candidateDates.find(date => date.date === cellDate);
+                    if (candidateDate) {
+                        const mark = document.createElement('div');
+                        mark.className = 'date-bg absolute inset-0 flex items-center justify-center pointer-events-none';
+                        
+                        if (!candidateDate.judgement) {
+                            // 未判定の候補日は下線スタイル
+                            mark.innerHTML = `
+                                <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-[2px] bg-gray-300/50"></div>
+                            `;
+                        } else {
+                            // 判定に応じたスタイル
+                            switch (candidateDate.judgement) {
+                                case '〇':
+                                    mark.innerHTML = `
+                                        <div class="w-8 h-8 border-2 border-emerald-300/70 rounded-full"></div>
+                                    `;
+                                    break;
+                                case '△':
+                                    mark.innerHTML = `
+                                        <div class="w-8 h-8 flex items-center justify-center">
+                                            <div class="w-6 h-6 bg-orange-200/50"
+                                                style="clip-path: polygon(50% 0%, 100% 100%, 0% 100%);">
+                                            </div>
+                                        </div>
+                                    `;
+                                    break;
+                                case '×':
+                                    mark.innerHTML = `
+                                        <div class="w-8 h-8 flex items-center justify-center">
+                                            <div class="relative w-6 h-6">
+                                                <div class="absolute inset-0 flex items-center justify-center">
+                                                    <div class="w-full h-[2px] bg-rose-300/50 transform rotate-45"></div>
+                                                </div>
+                                                <div class="absolute inset-0 flex items-center justify-center">
+                                                    <div class="w-full h-[2px] bg-rose-300/50 transform -rotate-45"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                    break;
+                            }
+                        }
+                        
+                        el.appendChild(mark);
+                    }
+                });
             }
 
             var calendarEl = document.getElementById('calendar');
@@ -297,50 +241,47 @@
                     center: '',
                     right: 'prev,next'
                 },
-                titleFormat: { 
-                    year: 'numeric',
-                    month: 'long'
+                height: 'auto',
+                dayCellContent: function(arg) {
+                    return arg.dayNumberText.replace('日', '');
                 },
                 buttonText: {
-                    prev: '▲',
-                    next: '▼'
+                    prev: '▼',
+                    next: '▲'
                 },
-                dayCellContent: function(arg) {
-                    const dateNum = arg.dayNumberText.replace('日', '');
-                    return {
-                        html: `<div class="custom-date-cell">${dateNum}</div>`
-                    };
-                },
+                buttonIcons: false,
+                // 今日の日付のハイライトを有効化
+                nowIndicator: true,
+                now: new Date(),
+                // 今日の日付のスタイルを有効化
+                dayMaxEvents: true,
                 dateClick: function(info) {
                     const candidateDate = candidateDates.find(date => date.date === info.dateStr);
-                    if (!candidateDate) return;
-
-                    const existingBox = document.querySelector('.judgement-box');
-                    if (existingBox) {
-                        existingBox.remove();
-                    }
-
-                    const box = createJudgementBox(candidateDate);
-                    document.body.appendChild(box);
-
-                    const closeOnClickOutside = function(e) {
-                        if (!box.contains(e.target)) {
-                            box.remove();
-                            document.removeEventListener('click', closeOnClickOutside);
+                    if (candidateDate) {
+                        const existingBox = document.querySelector('.judgement-box');
+                        if (existingBox) {
+                            existingBox.remove();
                         }
-                    };
-
-                    setTimeout(() => {
-                        document.addEventListener('click', closeOnClickOutside);
-                    }, 100);
+                        const box = createJudgementBox(candidateDate);
+                        document.body.appendChild(box);
+                    }
                 },
-                datesSet: function() {
-                    setTimeout(applyDateStyles, 0);
+                dayCellDidMount: function(arg) {
+                    const today = new Date();
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    if (arg.date.toISOString().split('T')[0] === todayStr) {
+                        const cell = arg.el;
+                        const bg = document.createElement('div');
+                        bg.className = 'today-bg';
+                        cell.appendChild(bg);
+                    }
                 }
             });
 
             calendar.render();
-            setTimeout(applyDateStyles, 0);
+            setTimeout(applyDateStyles, 100);  // タイミングを少し遅らせる
+            applyDateStyles();
         });
     </script>
 

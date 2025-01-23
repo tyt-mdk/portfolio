@@ -9,7 +9,7 @@
     <title>Tripease</title>
     @vite('resources/css/app.css')
 </head>
-<body>
+<body class="flex flex-col min-h-[100vh] text-[0.65rem] bg-slate-100 text-slate-800 font-notosans">
     <header>
     </header>
     <main>
@@ -18,7 +18,7 @@
         <p>{{ $trip->description }}</p>
         <a href=""><p class="">編集</p></a>
         <p>{{ $trip->start_date }}～{{ $trip->end_date }}</p>
-        <a href="{{ route('schedule.show', $trip->id) }}"><p class="">日程調整する</p></a>
+        <a href="{{ route('trips.schedule', $trip->id) }}"><p class="">日程調整する</p></a>
     </main>
     <footer>
     </footer>
