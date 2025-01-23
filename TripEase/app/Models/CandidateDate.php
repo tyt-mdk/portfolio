@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class CandidateDate extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'trip_id', 'proposed_date'];
+    protected $fillable = [
+        'trip_id',
+        'proposed_date',
+        'judgement',
+        'user_id'
+    ];
     public function trip()
     {
         return $this->belongsTo(Trip::class);

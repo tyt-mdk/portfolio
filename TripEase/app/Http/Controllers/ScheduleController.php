@@ -6,33 +6,60 @@ use Illuminate\Http\Request;
 use App\Models\CandidateDate;
 use App\Models\DateVote;
 use App\Models\Trip;
+use App\Models\User;
 
 class ScheduleController extends Controller
 {
     public function showDatePlanning(Trip $trip)
     {
-        $candidateDates = CandidateDate::select('candidate_dates.*', 'date_votes.judgement')
-            ->leftJoin('date_votes', function($join) {
-                $join->on('candidate_dates.id', '=', 'date_votes.date_id')
-                    ->where('date_votes.user_id', '=', auth()->id());
-            })
-            ->where('candidate_dates.trip_id', $trip->id)  // テーブル名を明示的に指定
+        // 候補日を取得
+        $candidateDates = CandidateDate::where('trip_id', $trip->id)
+            ->orderBy('proposed_date')
             ->get();
-
-        return view('trips.dateplanning', compact('trip', 'candidateDates'));
+    
+        // この旅行に関連するすべてのユーザーを取得（SQLを修正）
+        $userIds = collect(); // 空のコレクションを作成
+    
+        // DateVotesからユーザーIDを取得
+        $voteUserIds = DateVote::where('trip_id', $trip->id)
+            ->pluck('user_id');
+        $userIds = $userIds->concat($voteUserIds);
+    
+        // CandidateDatesからユーザーIDを取得
+        $candidateUserIds = CandidateDate::where('trip_id', $trip->id)
+            ->pluck('user_id');
+        $userIds = $userIds->concat($candidateUserIds);
+    
+        // 重複を除去してユーザーを取得
+        $users = User::whereIn('id', $userIds->unique())->get();
+    
+        // 投票データを取得
+        $dateVotes = DateVote::where('trip_id', $trip->id)->get();
+    
+        return view('trips.dateplanning', compact(
+            'trip',
+            'candidateDates',
+            'users',
+            'dateVotes'
+        ));
     }
 
     public function addCandidateDate(Request $request, $tripId)
     {
-        $request->validate(['proposed_date' => 'required|date']);
-
-        CandidateDate::create([
-            'user_id' => auth()->id(),
-            'trip_id' => $tripId,
-            'proposed_date' => $request->proposed_date,
+        $request->validate([
+            'proposed_date' => 'required|date',
         ]);
-
-        return redirect()->route('schedule.show', $tripId);
+    
+        // 候補日を作成
+        $candidateDate = new CandidateDate();
+        $candidateDate->trip_id = $tripId;
+        $candidateDate->proposed_date = $request->proposed_date;
+        $candidateDate->user_id = auth()->id();  // ログインユーザーのIDを追加
+        $candidateDate->save();
+    
+        // 同じページにリダイレクト
+        return redirect()->route('trips.schedule', ['trip' => $tripId])
+                        ->with('success', '候補日を追加しました');
     }
 
     public function voteDate(Request $request, Trip $trip)

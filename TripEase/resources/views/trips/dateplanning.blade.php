@@ -60,29 +60,44 @@
 <body class="flex flex-col min-h-[100vh] text-[0.65rem] bg-slate-100 text-slate-800 font-notosans">
     <header>
     </header>
-    <main>
-        <h1 class="text-2xl text-slate-950">{{ $trip->title }}の日程調整</h1>
+    <main class="flex-1 pb-20">
+        <h1 class="text-2xl text-slate-950 mt-6 ml-6">{{ $trip->title }}の日程調整</h1>
 
         <!-- カレンダー -->
         <div class="rounded shadow-md bg-slate-50 grid grid-flow-col justify-stretch p-4 my-10 mx-5">
             <div id="calendar"></div>
         </div>
 
-        <!-- 候補日追加 -->
-        <h2>候補日を追加する</h2>
-        <form method="POST" action="{{ route('schedule.addDate', $trip->id) }}">
-            @csrf
-            <input type="date" name="proposed_date" required>
-            <button type="submit">追加</button>
-        </form>
-
-        <!-- 確定ボタン -->
-        <form method="POST" action="{{ route('schedule.finalize', $trip->id) }}">
-            @csrf
-            <button type="submit">確定</button>
-        </form>
+        <div class="max-w-[400px] mx-auto font-sans">
+            <!-- 候補日追加 -->
+            <section class="mb-5">
+                <h2 class="text-lg mb-2.5">候補日を追加</h2>
+                <form method="POST" action="{{ route('schedule.addDate', $trip->id) }}" class="flex gap-2.5">
+                    @csrf
+                    <input 
+                        type="date" 
+                        name="proposed_date" 
+                        required 
+                        class="flex-1 px-2 py-2 border border-gray-300 rounded"
+                    >
+                    <button 
+                        type="submit" 
+                        class="px-4 py-2 bg-sky-300 text-white rounded hover:bg-sky-400 transition-colors"
+                    >
+                        追加
+                    </button>
+                </form>
+            </section>
+        </div>
     </main>
-    <footer>
+    <footer  class="fixed bottom-0 left-0 right-0 bg-slate-50">
+        <div class="flex justify-around text-center h-20 text-sm">
+            <!-- 戻るボタン -->
+            <a href="javascript:void(0)" onclick="history.back()" class="absolute left-4 top-1/2 -translate-y-1/2">
+                <i class="fa-solid fa-chevron-left"></i>
+                <p>戻る</p>
+            </a>
+        </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
@@ -189,10 +204,8 @@
                         mark.className = 'date-bg absolute inset-0 flex items-center justify-center pointer-events-none';
                         
                         if (!candidateDate.judgement) {
-                            // 未判定の候補日は下線スタイル
-                            mark.innerHTML = `
-                                <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-[2px] bg-gray-300/50"></div>
-                            `;
+                            // 未判定の候補日は薄い青の背景
+                            mark.style.backgroundColor = 'rgb(219 234 254 / 0.5)';  // bg-blue-100/50
                         } else {
                             // 判定に応じたスタイル
                             switch (candidateDate.judgement) {
@@ -250,10 +263,12 @@
                     next: '▲'
                 },
                 buttonIcons: false,
-                // 今日の日付のハイライトを有効化
-                nowIndicator: true,
-                now: new Date(),
-                // 今日の日付のスタイルを有効化
+                // today関連の設定を無効化
+                nowIndicator: false,
+                now: null,
+                // 今日の日付のハイライトを無効化
+                highlightToday: false,
+                // 今日の日付の背景を無効化
                 dayMaxEvents: true,
                 dateClick: function(info) {
                     const candidateDate = candidateDates.find(date => date.date === info.dateStr);
@@ -266,16 +281,8 @@
                         document.body.appendChild(box);
                     }
                 },
-                dayCellDidMount: function(arg) {
-                    const today = new Date();
-                    const todayStr = today.toISOString().split('T')[0];
-                    
-                    if (arg.date.toISOString().split('T')[0] === todayStr) {
-                        const cell = arg.el;
-                        const bg = document.createElement('div');
-                        bg.className = 'today-bg';
-                        cell.appendChild(bg);
-                    }
+                datesSet: function() {
+                    applyDateStyles();
                 }
             });
 

@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Trip;//追加
 use Illuminate\Support\Facades\Validator;//バリデーション追加
 use Illuminate\Support\Facades\Auth;//ユーザー情報
+use App\Models\User;
+use App\Models\CandidateDate;
+use App\Models\DateVote;
 
 class TripController extends Controller
 {
@@ -51,10 +54,38 @@ class TripController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Trip $trip)
     {
-        $trip = Trip::findOrFail($id); //該当IDがなければ404エラーを返す
-        return view('trips.eachplanning', ['trip' => $trip]);
+        // 候補日を取得
+        $candidateDates = CandidateDate::where('trip_id', $trip->id)
+            ->orderBy('proposed_date')
+            ->get();
+    
+        // この旅行に関連するすべてのユーザーを取得
+        $userIds = collect();
+        
+        // DateVotesからユーザーIDを取得
+        $voteUserIds = DateVote::where('trip_id', $trip->id)
+            ->pluck('user_id');
+        $userIds = $userIds->concat($voteUserIds);
+    
+        // CandidateDatesからユーザーIDを取得
+        $candidateUserIds = CandidateDate::where('trip_id', $trip->id)
+            ->pluck('user_id');
+        $userIds = $userIds->concat($candidateUserIds);
+    
+        // 重複を除去してユーザーを取得
+        $users = User::whereIn('id', $userIds->unique())->get();
+    
+        // 投票データを取得
+        $dateVotes = DateVote::where('trip_id', $trip->id)->get();
+    
+        return view('trips.eachplanning', compact(
+            'trip',
+            'candidateDates',
+            'users',
+            'dateVotes'
+        ));
     }
 
     /**
