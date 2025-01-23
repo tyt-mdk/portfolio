@@ -16,6 +16,11 @@ class UserController extends Controller
     {
         $user = Auth::user();
         $trips = Trip::all();
+        
+        // デバッグ用（開発時のみ）
+        \Log::info('UserController@index called');
+        \Log::info('Authenticated user:', ['user' => $user->name]);
+        
         return view('trips.dashboard', ['user' => $user], compact('trips'));
     }
 

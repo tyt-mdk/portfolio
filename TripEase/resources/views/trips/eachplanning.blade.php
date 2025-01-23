@@ -87,6 +87,91 @@
                日程を調整する
             </a>
         </div>
+
+        <!-- ユーザー要望一覧 -->
+        <section class="bg-white rounded-lg shadow-sm p-4 space-y-4">
+            <h2 class="font-medium text-slate-700 border-b border-slate-200 pb-2">みんなの要望</h2>
+            
+            <!-- 要望一覧 -->
+            <div class="space-y-4">
+                @foreach($userRequests as $request)
+                    <div class="border-b border-slate-100 last:border-0 pb-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-2">
+                                <!-- ユーザー名 -->
+                                <p class="font-medium text-slate-700">{{ $request->user->name }}</p>
+                                <!-- 投稿日時 -->
+                                <p class="text-slate-400">
+                                    {{ \Carbon\Carbon::parse($request->created_at)->format('n/j H:i') }}
+                                </p>
+                            </div>
+                            <!-- いいねボタン -->
+                            <button 
+                                class="flex items-center space-x-1 text-slate-400 hover:text-rose-500 transition-colors"
+                                onclick="toggleLike({{ $request->id }})"
+                            >
+                                <i class="fa-{{ $request->likes->contains('user_id', Auth::id()) ? 'solid' : 'regular' }} fa-heart"></i>
+                                <span>{{ $request->likes->count() }}</span>
+                            </button>
+                        </div>
+
+                        <!-- 要望内容 -->
+                        <p class="mt-2 text-slate-600">{{ $request->content }}</p>
+
+                        <!-- コメント一覧 -->
+                        <div class="mt-2 pl-4 space-y-2">
+                            @foreach($request->comments as $comment)
+                                <div class="flex items-start space-x-2">
+                                    <p class="font-medium text-slate-700">{{ $comment->user->name }}</p>
+                                    <p class="text-slate-600">{{ $comment->content }}</p>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- コメント追加フォーム -->
+                        <form method="POST" action="{{ route('requests.comment', $request->id) }}" class="mt-2 pl-4">
+                            @csrf
+                            <div class="flex items-center space-x-2">
+                                <input 
+                                    type="text" 
+                                    name="content" 
+                                    placeholder="コメントを追加" 
+                                    class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
+                                    required
+                                >
+                                <button 
+                                    type="submit" 
+                                    class="px-3 py-1 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition-colors"
+                                >
+                                    送信
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- 要望追加フォーム -->
+            <form method="POST" action="{{ route('trips.request', $trip->id) }}" class="mt-4">
+                @csrf
+                <div class="space-y-2">
+                    <textarea 
+                        name="content" 
+                        rows="2" 
+                        placeholder="要望を追加" 
+                        class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
+                    ></textarea>
+                    <div class="text-right">
+                        <button 
+                            type="submit" 
+                            class="px-4 py-1.5 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition-colors"
+                        >
+                            投稿
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
     </main>
 
     <footer  class="fixed bottom-0 left-0 right-0 bg-slate-50">
@@ -98,5 +183,34 @@
             </a>
         </div>
     </footer>
+
+    <script>
+        function toggleLike(requestId) {
+            fetch(`/requests/${requestId}/like`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                // いいねの状態を更新
+                const button = event.currentTarget;
+                const icon = button.querySelector('i');
+                const count = button.querySelector('span');
+                
+                if (data.liked) {
+                    icon.classList.remove('fa-regular');
+                    icon.classList.add('fa-solid');
+                } else {
+                    icon.classList.remove('fa-solid');
+                    icon.classList.add('fa-regular');
+                }
+                
+                count.textContent = data.count;
+            });
+        }
+    </script>
 </body>
 </html>

@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('creator_id')->constrained('users');
             $table->string('title', 100);
             $table->text('description');
-            $table->date('start_date');
-            $table->date('end_date');
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
             $table->timestamp('updated_at')->useCurrent()->nullable();
             $table->timestamp('created_at')->useCurrent()->nullable();
         });

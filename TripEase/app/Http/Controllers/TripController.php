@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;//ユーザー情報
 use App\Models\User;
 use App\Models\CandidateDate;
 use App\Models\DateVote;
+use App\Models\TripRequest;
 
 class TripController extends Controller
 {
@@ -35,20 +36,39 @@ class TripController extends Controller
      */
     public function store(Request $request)
     {
-        $rules = [
-            'title' => 'required',
-        ];
-        $messages = [
-            'required' => '必須項目です',
-        ];
-        Validator::make($request->all(),$rules,$messages)->validate();
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            // 'start_date' => 'nullable|date',
+            // 'end_date' => 'nullable|date|after_or_equal:start_date'
+        ]);
+    
+        $trip = Trip::create([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'creator_id' => auth()->id(),
+            'start_date' => null,  // 初期値としてnullを設定
+            'end_date' => null     // 初期値としてnullを設定
+        ]);
+    
+        return redirect()->route('trips.show', $trip);
+    }
 
-        $trip = new Trip;//モデルをインスタンス化
-        $trip->title = $request->input('title');//モデル->カラム名=値で、データを割り当てる
-        $trip->description = $request->input('description');//上記と同様
-        $trip->creator_id = Auth::id();//現在認証しているユーザーのIDを取得
-        $trip->save();//データベースに保存
-        return redirect()->route('trips.show', ['trip' => $trip->id])->with('success', '旅行計画が作成されました！');//リダイレクト
+    public function storeRequest(Request $request, Trip $trip)
+    {
+        $request->validate([
+            'content' => 'required|string|max:1000'
+        ]);
+    
+        $tripRequest = new TripRequest([
+            'trip_id' => $trip->id,
+            'user_id' => Auth::id(),
+            'content' => $request->content
+        ]);
+    
+        $tripRequest->save();
+    
+        return back();
     }
 
     /**
@@ -60,7 +80,7 @@ class TripController extends Controller
         $candidateDates = CandidateDate::where('trip_id', $trip->id)
             ->orderBy('proposed_date')
             ->get();
-    
+
         // この旅行に関連するすべてのユーザーを取得
         $userIds = collect();
         
@@ -68,23 +88,30 @@ class TripController extends Controller
         $voteUserIds = DateVote::where('trip_id', $trip->id)
             ->pluck('user_id');
         $userIds = $userIds->concat($voteUserIds);
-    
+
         // CandidateDatesからユーザーIDを取得
         $candidateUserIds = CandidateDate::where('trip_id', $trip->id)
             ->pluck('user_id');
         $userIds = $userIds->concat($candidateUserIds);
-    
+
         // 重複を除去してユーザーを取得
         $users = User::whereIn('id', $userIds->unique())->get();
-    
+
         // 投票データを取得
         $dateVotes = DateVote::where('trip_id', $trip->id)->get();
-    
+
+        // 要望一覧を取得（この部分を追加）
+        $userRequests = TripRequest::where('trip_id', $trip->id)
+            ->with(['user', 'likes', 'comments.user'])
+            ->latest()
+            ->get();
+
         return view('trips.eachplanning', compact(
             'trip',
             'candidateDates',
             'users',
-            'dateVotes'
+            'dateVotes',
+            'userRequests'  // この変数を追加
         ));
     }
 
