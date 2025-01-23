@@ -29,8 +29,14 @@ class TripRequest extends Model
         return $this->hasMany(RequestComment::class);
     }
 
-    public function likes(): HasMany
+    public function likes()
     {
         return $this->hasMany(RequestLike::class);
+    }
+    
+    public function isLikedBy($user)
+    {
+        if (!$user) return false;
+        return $this->likes()->where('user_id', $user->id)->exists();
     }
 }

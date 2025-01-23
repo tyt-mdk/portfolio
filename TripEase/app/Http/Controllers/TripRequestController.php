@@ -24,22 +24,19 @@ class TripRequestController extends Controller
         return back();
     }
 
-    public function toggleLike(TripRequest $tripRequest)
+    public function toggleLike(Request $request, $requestId)
     {
-        $existing = $tripRequest->likes()
-            ->where('user_id', Auth::id())
-            ->first();
-
-        if ($existing) {
-            $existing->delete();
+        $tripRequest = TripRequest::findOrFail($requestId);
+        $user = Auth::user();
+        
+        if ($tripRequest->likes()->where('user_id', $user->id)->exists()) {
+            $tripRequest->likes()->where('user_id', $user->id)->delete();
             $liked = false;
         } else {
-            $tripRequest->likes()->create([
-                'user_id' => Auth::id()
-            ]);
+            $tripRequest->likes()->create(['user_id' => $user->id]);
             $liked = true;
         }
-
+        
         return response()->json([
             'liked' => $liked,
             'count' => $tripRequest->likes()->count()

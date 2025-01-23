@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://kit.fontawesome.com/ef96165231.js" crossorigin="anonymous"></script>
     <title>Tripease</title>
     @vite('resources/css/app.css')
@@ -107,11 +108,12 @@
                             </div>
                             <!-- いいねボタン -->
                             <button 
-                                class="flex items-center space-x-1 text-slate-400 hover:text-rose-500 transition-colors"
-                                onclick="toggleLike({{ $request->id }})"
+                                onclick="toggleLike({{ $request->id }}, this)" 
+                                class="like-button flex items-center space-x-1 {{ $request->isLikedBy(Auth::user()) ? 'text-red-500' : 'text-slate-400' }}"
+                                data-liked="{{ $request->isLikedBy(Auth::user()) ? 'true' : 'false' }}"
                             >
-                                <i class="fa-{{ $request->likes->contains('user_id', Auth::id()) ? 'solid' : 'regular' }} fa-heart"></i>
-                                <span>{{ $request->likes->count() }}</span>
+                                <i class="fa-heart {{ $request->isLikedBy(Auth::user()) ? 'fas' : 'far' }}"></i>
+                                <span class="like-count">{{ $request->likes->count() }}</span>
                             </button>
                         </div>
 
@@ -210,6 +212,41 @@
                 
                 count.textContent = data.count;
             });
+        }
+        // いいねボタンのjava処理
+        function toggleLike(requestId, button) {
+            fetch(`/requests/${requestId}/like`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    request_id: requestId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const icon = button.querySelector('i');
+                const countSpan = button.querySelector('.like-count');
+                
+                if (data.liked) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+                    button.classList.add('text-red-500');
+                    button.classList.remove('text-slate-400');
+                } else {
+                    icon.classList.remove('fas');
+                    icon.classList.add('far');
+                    button.classList.remove('text-red-500');
+                    button.classList.add('text-slate-400');
+                }
+                
+                // いいね数を更新
+                countSpan.textContent = data.count;
+            })
+            .catch(error => console.error('Error:', error));
         }
     </script>
 </body>
