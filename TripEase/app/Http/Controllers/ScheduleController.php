@@ -7,6 +7,7 @@ use App\Models\CandidateDate;
 use App\Models\DateVote;
 use App\Models\Trip;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class ScheduleController extends Controller
 {
@@ -16,26 +17,32 @@ class ScheduleController extends Controller
         $candidateDates = CandidateDate::where('trip_id', $trip->id)
             ->orderBy('proposed_date')
             ->get();
-    
-        // この旅行に関連するすべてのユーザーを取得（SQLを修正）
-        $userIds = collect(); // 空のコレクションを作成
-    
+
+        // この旅行に関連するすべてのユーザーを取得
+        $userIds = collect();
+        
         // DateVotesからユーザーIDを取得
         $voteUserIds = DateVote::where('trip_id', $trip->id)
             ->pluck('user_id');
         $userIds = $userIds->concat($voteUserIds);
-    
+
         // CandidateDatesからユーザーIDを取得
         $candidateUserIds = CandidateDate::where('trip_id', $trip->id)
             ->pluck('user_id');
         $userIds = $userIds->concat($candidateUserIds);
-    
+
         // 重複を除去してユーザーを取得
         $users = User::whereIn('id', $userIds->unique())->get();
-    
-        // 投票データを取得
-        $dateVotes = DateVote::where('trip_id', $trip->id)->get();
-    
+
+        // 投票データを取得（現在のユーザーの投票のみ）
+        $dateVotes = DateVote::where('trip_id', $trip->id)
+            ->where('user_id', Auth::id())
+            ->get();
+
+        // デバッグ用のログ出力
+        \Log::info('CandidateDates:', $candidateDates->toArray());
+        \Log::info('DateVotes:', $dateVotes->toArray());
+
         return view('trips.dateplanning', compact(
             'trip',
             'candidateDates',

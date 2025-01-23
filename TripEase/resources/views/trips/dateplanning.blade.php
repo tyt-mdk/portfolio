@@ -109,10 +109,15 @@
                     {
                         date: '{{ $date->proposed_date }}',
                         id: {{ $date->id }},
-                        judgement: '{{ $date->judgement ?? "" }}'
+                        judgement: '{{ $dateVotes->where("date_id", $date->id)->first()?->judgement ?? "" }}'
                     },
                 @endforeach
             ];
+
+            // デバッグ用の詳細なログ出力
+            candidateDates.forEach(date => {
+                console.log('Date:', date.date, 'ID:', date.id, 'Judgement:', date.judgement);
+            });
 
                 // createJudgementBox関数を追加
             function createJudgementBox(candidateDate) {
@@ -188,6 +193,9 @@
             }
 
             function applyDateStyles() {
+                // デバッグ用のログ出力
+                console.log('candidateDates:', candidateDates);
+
                 // 既存のスタイルをクリア
                 document.querySelectorAll('.date-bg').forEach(el => {
                     el.remove();
@@ -203,7 +211,10 @@
                         const mark = document.createElement('div');
                         mark.className = 'date-bg absolute inset-0 flex items-center justify-center pointer-events-none';
                         
-                        if (!candidateDate.judgement) {
+                        // デバッグ用のログ出力
+                        console.log('Found date:', cellDate, 'Judgement:', candidateDate.judgement);
+
+                        if (!candidateDate.judgement || candidateDate.judgement === '') {
                             // 未判定の候補日は薄い青の背景
                             mark.style.backgroundColor = 'rgb(219 234 254 / 0.5)';  // bg-blue-100/50
                         } else {
@@ -266,8 +277,6 @@
                 // today関連の設定を無効化
                 nowIndicator: false,
                 now: null,
-                // 今日の日付のハイライトを無効化
-                highlightToday: false,
                 // 今日の日付の背景を無効化
                 dayMaxEvents: true,
                 dateClick: function(info) {
