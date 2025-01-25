@@ -6,27 +6,57 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://kit.fontawesome.com/ef96165231.js" crossorigin="anonymous"></script>
+
+    <style>
+        .mode-tab {
+            transition: all 0.3s ease;
+            color: #64748b;  /* text-slate-500相当 */
+        }
+        .mode-tab:hover {
+            color: #1e293b;  /* text-slate-900相当 */
+        }
+        .mode-tab.active > div {
+            background-color: white;
+            padding: 0.5rem 1rem;  /* py-2 px-4相当 */
+            border-radius: 9999px;  /* rounded-full相当 */
+            color: #1e293b;  /* text-slate-900相当 */
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);  /* shadow-sm相当 */
+        }
+    </style>
+
     <title>Tripease</title>
     @vite('resources/css/app.css')
 </head>
 <body class="flex flex-col min-h-screen bg-slate-100 text-slate-800 font-notosans text-[0.65rem]">  <!-- text-[0.65rem]を追加 -->
     <header>
     </header>
-    <main class="flex-1 max-w-4xl mx-auto w-full px-4 py-6 space-y-6 pb-20">
+    <main class="flex-1 max-w-4xl mx-auto w-full px-4 py-6 space-y-6 pb-32">
+        <!-- タイトルセクション -->
         <section class="bg-white rounded-lg shadow-sm p-4">
-            <p class="text-slate-400">タイトル</p>
-            <p class="text-slate-600">{{ $trip->title }}</p>
-            <a href="#" class="inline-block mt-2 text-sky-500 hover:text-sky-600">
-                <i class="fa-solid fa-pen-to-square mr-1"></i>編集
-            </a>
+            <div class="relative">
+                <div>
+                    <p class="text-slate-400">タイトル</p>
+                    <p class="text-slate-600">{{ $trip->title }}</p>
+                </div>
+                <a href="#" class="absolute bottom-0 right-0 inline-flex items-center justify-center px-6 py-2.5 bg-sky-500 text-white font-medium rounded-md shadow-sm hover:bg-sky-600 transition-colors edit-mode-only">
+                    <i class="fa-solid fa-pen-to-square mr-2"></i>
+                    編集
+                </a>
+            </div>
         </section>
-        <!-- 説明文 -->
+
+        <!-- 説明文セクション -->
         <section class="bg-white rounded-lg shadow-sm p-4">
-            <p class="text-slate-400">目的</p>
-            <p class="text-slate-600">{{ $trip->description }}</p>
-            <a href="#" class="inline-block mt-2 text-sky-500 hover:text-sky-600">
-                <i class="fa-solid fa-pen-to-square mr-1"></i>編集
-            </a>
+            <div class="relative">
+                <div>
+                    <p class="text-slate-400">目的</p>
+                    <p class="text-slate-600">{{ $trip->description }}</p>
+                </div>
+                <a href="#" class="absolute bottom-0 right-0 inline-flex items-center justify-center px-6 py-2.5 bg-sky-500 text-white font-medium rounded-md shadow-sm hover:bg-sky-600 transition-colors edit-mode-only">
+                    <i class="fa-solid fa-pen-to-square mr-2"></i>
+                    編集
+                </a>
+            </div>
         </section>
 
         <!-- 候補日一覧テーブル -->
@@ -81,7 +111,7 @@
         </section>
 
         <!-- 日程調整ボタン -->
-        <div class="text-center">
+        <div class="text-center edit-mode-only">
             <a href="{{ route('trips.schedule', $trip->id) }}" 
                class="inline-flex items-center justify-center px-6 py-2.5 bg-sky-500 text-white font-medium rounded-md shadow-sm hover:bg-sky-600 transition-colors">
                <i class="fa-regular fa-calendar-check mr-2"></i>
@@ -131,7 +161,7 @@
                         </div>
 
                         <!-- コメント追加フォーム -->
-                        <form method="POST" action="{{ route('requests.comment', $request->id) }}" class="mt-2 pl-4">
+                        <form method="POST" action="{{ route('requests.comment', $request->id) }}" class="mt-2 pl-4 edit-mode-only">
                             @csrf
                             <div class="flex items-center space-x-2">
                                 <input 
@@ -154,7 +184,7 @@
             </div>
 
             <!-- 要望追加フォーム -->
-            <form method="POST" action="{{ route('trips.request', $trip->id) }}" class="mt-4">
+            <form method="POST" action="{{ route('trips.request', $trip->id) }}" class="mt-4 edit-mode-only">
                 @csrf
                 <div class="space-y-2">
                     <textarea 
@@ -176,17 +206,65 @@
         </section>
     </main>
 
-    <footer  class="fixed bottom-0 left-0 right-0 bg-slate-50">
-        <div class="flex justify-around text-center h-20 text-sm">
-            <!-- 戻るボタン -->
-            <a href="javascript:void(0)" onclick="history.back()" class="absolute left-4 top-1/2 -translate-y-1/2">
-                <i class="fa-solid fa-chevron-left"></i>
-                <p>戻る</p>
-            </a>
+    <footer class="fixed bottom-0 left-0 right-0 bg-slate-50 shadow-lg">
+        <div class="max-w-4xl mx-auto px-4">
+            <!-- モード切り替えタブ -->
+            <div class="flex justify-center -mt-12 -mx-4">
+                <div class="flex w-full bg-slate-50 overflow-hidden">
+                    <button 
+                        onclick="switchMode('view')" 
+                        class="flex-1 px-6 py-3 text-sm font-medium mode-tab flex items-center justify-center" 
+                        id="viewTab"
+                    >
+                        <div class="flex items-center justify-center">
+                            <i class="fa-regular fa-eye mr-2"></i>表示モード
+                        </div>
+                    </button>
+                    <button 
+                        onclick="switchMode('edit')" 
+                        class="flex-1 px-6 py-3 text-sm font-medium mode-tab active flex items-center justify-center" 
+                        id="editTab"
+                    >
+                        <div class="flex items-center justify-center">
+                            <i class="fa-solid fa-pen mr-2"></i>編集モード
+                        </div>
+                    </button>
+                </div>
+            </div>
+    
+            <!-- フッターの本体部分 -->
+            <div class="flex justify-around text-center h-20 text-sm">  <!-- dateplanning.blade.phpと同じクラスに変更 -->
+                <!-- 戻るボタン -->
+                <a href="javascript:void(0)" onclick="history.back()" class="absolute left-4 top-1/2 -translate-y-1/2">
+                    <i class="fa-solid fa-chevron-left"></i>
+                    <p>戻る</p>  <!-- spanからpに変更 -->
+                </a>
+            </div>
         </div>
     </footer>
 
     <script>
+        function switchMode(mode) {
+            const viewTab = document.getElementById('viewTab');
+            const editTab = document.getElementById('editTab');
+            const editElements = document.querySelectorAll('.edit-mode-only');
+            
+            if (mode === 'view') {
+                viewTab.classList.add('active');
+                editTab.classList.remove('active');
+                editElements.forEach(el => el.classList.add('hidden'));
+            } else {
+                editTab.classList.add('active');
+                viewTab.classList.remove('active');
+                editElements.forEach(el => el.classList.remove('hidden'));
+            }
+        }
+
+        // 初期状態は表示モード
+        document.addEventListener('DOMContentLoaded', () => {
+            switchMode('view');
+        });
+
         function toggleLike(requestId) {
             fetch(`/requests/${requestId}/like`, {
                 method: 'POST',

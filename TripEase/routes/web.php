@@ -10,11 +10,16 @@ use Illuminate\Support\Facades\Auth;
 
 // 認証不要のルート
 Route::get('/', function () {
-    return view('welcome');
-});
+    return view('trips.toppage');
+})->name('toppage');
 
 // 認証関連のルート
 Auth::routes();
+
+// 認証済みユーザーのリダイレクト
+Route::get('/home', function () {
+    return redirect()->route('trips.dashboard');
+})->middleware('auth');
 
 // 認証が必要なルート
 Route::middleware(['auth'])->group(function () {
