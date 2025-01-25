@@ -6,6 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- レスポンシブ -->
     <script src="https://kit.fontawesome.com/ef96165231.js" crossorigin="anonymous"></script><!-- FontAwesome -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script><!-- Alpine.js -->
     <title>TripEase</title>
 
     @vite('resources/css/app.css')
@@ -70,22 +71,42 @@
     </main>
     <footer class="bg-slate-50">
         <div class="flex justify-around text-center h-20 text-sm">
-                <a href="">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <p>探す</p>
-                </a>
-                <a href="">
-                    <i class="fa-solid fa-user-group"></i>
-                    <p>フレンド</p>
-                </a>
-                <a href="">
-                    <i class="fa-regular fa-comment-dots"></i>
-                    <p>チャット</p>
-                </a>
-                <a href="">
+            <a href="">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <p>探す</p>
+            </a>
+            <a href="">
+                <i class="fa-solid fa-user-group"></i>
+                <p>フレンド</p>
+            </a>
+            <a href="">
+                <i class="fa-regular fa-comment-dots"></i>
+                <p>チャット</p>
+            </a>
+            <!-- メニューをボタンに変更し、クリックでドロップダウンを表示 -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="text-center">
                     <i class="fa-solid fa-bars"></i>
                     <p>メニュー</p>
-                </a>
+                </button>
+                
+                <!-- ドロップダウンメニュー -->
+                <div x-show="open" 
+                     @click.away="open = false"
+                     class="absolute bottom-full right-0 mb-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                    <div class="py-1">
+                        <!-- ログアウトフォーム -->
+                        <form method="POST" action="{{ route('logout') }}" class="block">
+                            @csrf
+                            <button type="submit" 
+                                    class="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                                <i class="fa-solid fa-right-from-bracket mr-2"></i>
+                                ログアウト
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
 </body>

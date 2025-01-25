@@ -5,6 +5,7 @@ use App\Http\Controllers\TripController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\CandidateDateController;
 use App\Http\Controllers\TripRequestController;
+use App\Http\Controllers\Auth\LoginController;  // 追加
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,10 +17,11 @@ Route::get('/', function () {
 // 認証関連のルート
 Auth::routes();
 
-// 認証済みユーザーのリダイレクト
-Route::get('/home', function () {
-    return redirect()->route('trips.dashboard');
-})->middleware('auth');
+// 未ログインユーザーのみアクセス可能
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
+});
 
 // 認証が必要なルート
 Route::middleware(['auth'])->group(function () {
@@ -52,3 +54,6 @@ Route::middleware(['auth'])->group(function () {
 // 候補日関連のAPI
 Route::get('/get-candidate-dates', [CandidateDateController::class, 'getCandidateDates']);
 Route::post('/set-judgement', [CandidateDateController::class, 'setJudgement']);
+
+// ログアウト
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

@@ -3,49 +3,72 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
-// 以下追記
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
-
     use AuthenticatesUsers;
 
-    /**
-     * Where to redirect users after login.
-     *
-     * @var string
-     */
     protected $redirectTo = '/trips/dashboard';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
-        $this->middleware('auth')->only('logout');
     }
 
-    //追記 ログイン後のリダイレクト先
-    public function redirectTo()
+    // ログインIDのフィールドをカスタマイズ
+    public function username()
     {
-        if(! Auth::user()) {
-            return '/';
-        }
-        return route('users.index', ['user' => Auth::user()]);
+        $login = request()->input('login');
+        
+        // メールアドレス形式かどうかで判断
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
+        request()->merge([$field => $login]);
+        
+        return $field;
+    }
+
+    // バリデーションルールをカスタマイズ
+    protected function validateLogin(Request $request)
+    {
+        $request->validate([
+            'login' => 'required|string',
+            'password' => 'required|string',
+        ]);
+    }
+
+    // 認証の試行
+    protected function attemptLogin(Request $request)
+    {
+        $login = $request->input('login');
+        $password = $request->input('password');
+
+        // デバッグ情報を記録
+        \Log::info('Login attempt:', [
+            'input' => $login,
+            'exists_as_email' => \App\Models\User::where('email', $login)->exists(),
+            'exists_as_name' => \App\Models\User::where('name', $login)->exists()
+        ]);
+
+        // メールアドレスとユーザー名の両方で試行
+        $success = Auth::attempt(['email' => $login, 'password' => $password]) ||
+                  Auth::attempt(['name' => $login, 'password' => $password]);
+
+        \Log::info('Login result:', ['success' => $success]);
+
+        return $success;
+    }
+
+    // ログイン失敗時のメッセージをカスタマイズ
+    protected function sendFailedLoginResponse(Request $request)
+    {
+        return redirect()->back()
+            ->withInput($request->only('login'))
+            ->withErrors([
+                'login' => [trans('auth.failed')],
+            ]);
     }
 }
