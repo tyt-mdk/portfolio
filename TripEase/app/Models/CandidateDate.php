@@ -18,6 +18,10 @@ class CandidateDate extends Model
     {
         return $this->belongsTo(Trip::class);
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     public function datevotes()
     {
         return $this->hasMany(DateVote::class, 'date_id', 'id');

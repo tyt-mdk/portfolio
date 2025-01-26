@@ -42,4 +42,11 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function trips()
+    {
+        return $this->belongsToMany(Trip::class, 'trip_user')
+                    ->withTimestamps()
+                    ->orderBy('updated_at', 'desc');  // 最新の更新順に並び替え
+    }
 }

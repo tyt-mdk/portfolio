@@ -71,4 +71,16 @@ class LoginController extends Controller
                 'login' => [trans('auth.failed')],
             ]);
     }
+
+    protected function authenticated(Request $request, $user)
+    {
+        // セッションに保存された元のURLがあればそこにリダイレクト
+        if (session()->has('url.intended')) {
+            $url = session()->pull('url.intended');
+            return redirect($url);
+        }
+
+        // なければデフォルトのリダイレクト先へ
+        return redirect()->intended(route('dashboard'));
+    }
 }

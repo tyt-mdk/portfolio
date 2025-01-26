@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\CandidateDate;
 use App\Models\DateVote;
 use App\Models\TripRequest;
+use Illuminate\Support\Str;
 
 class TripController extends Controller
 {
@@ -36,22 +37,38 @@ class TripController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validatedData = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            // 'start_date' => 'nullable|date',
-            // 'end_date' => 'nullable|date|after_or_equal:start_date'
+            // 他のバリデーションルール...
         ]);
     
-        $trip = Trip::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'creator_id' => auth()->id(),
-            'start_date' => null,  // 初期値としてnullを設定
-            'end_date' => null     // 初期値としてnullを設定
-        ]);
+        // トランザクション開始
+        DB::beginTransaction();
+        
+        try {
+            // 旅行プランを作成
+            $trip = Trip::create([
+                'title' => $validatedData['title'],
+                'creator_id' => auth()->id(),
+                // 他のフィールド...
+            ]);
     
-        return redirect()->route('trips.show', $trip);
+            // 作成者を参加者として追加
+            $trip->users()->attach(auth()->id());
+    
+            DB::commit();
+            
+            return redirect()->route('trips.show', $trip)
+                ->with('success', '旅行プランを作成しました');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Trip creation failed: ' . $e->getMessage());
+            
+            return back()
+                ->withInput()
+                ->with('error', '旅行プランの作成に失敗しました');
+        }
     }
 
     public function storeRequest(Request $request, Trip $trip)
@@ -76,43 +93,39 @@ class TripController extends Controller
      */
     public function show(Trip $trip)
     {
-        // 候補日を取得
-        $candidateDates = CandidateDate::where('trip_id', $trip->id)
+        // ユーザーがこの旅行に参加しているか確認
+        if (!$trip->users->contains(auth()->id()) && $trip->creator_id !== auth()->id()) {
+            return redirect()->route('trips.index')
+                ->with('error', 'この旅行計画にアクセスする権限がありません。');
+        }
+    
+        // 作成者と参加者を結合して一意のユーザーリストを作成
+        $allUsers = collect([$trip->creator])->concat($trip->users)->unique('id');
+    
+        // 要望（trip_requests）とそれに関連するコメントといいねを取得
+        $userRequests = $trip->tripRequests()
+            ->with(['user', 'comments.user', 'likes.user'])
+            ->get();
+    
+        // 候補日とその投票を取得
+        $candidateDates = $trip->candidateDates()
+            ->with(['user', 'dateVotes.user'])
             ->orderBy('proposed_date')
             ->get();
-
-        // この旅行に関連するすべてのユーザーを取得
-        $userIds = collect();
-        
-        // DateVotesからユーザーIDを取得
-        $voteUserIds = DateVote::where('trip_id', $trip->id)
-            ->pluck('user_id');
-        $userIds = $userIds->concat($voteUserIds);
-
-        // CandidateDatesからユーザーIDを取得
-        $candidateUserIds = CandidateDate::where('trip_id', $trip->id)
-            ->pluck('user_id');
-        $userIds = $userIds->concat($candidateUserIds);
-
-        // 重複を除去してユーザーを取得
-        $users = User::whereIn('id', $userIds->unique())->get();
-
-        // 投票データを取得
-        $dateVotes = DateVote::where('trip_id', $trip->id)->get();
-
-        // 要望一覧を取得（この部分を追加）
-        $userRequests = TripRequest::where('trip_id', $trip->id)
-            ->with(['user', 'likes', 'comments.user'])
-            ->latest()
+    
+        // 日程の投票を取得
+        $dateVotes = DateVote::where('trip_id', $trip->id)
+            ->with(['user', 'candidateDate'])
             ->get();
-
-        return view('trips.eachplanning', compact(
-            'trip',
-            'candidateDates',
-            'users',
-            'dateVotes',
-            'userRequests'  // この変数を追加
-        ));
+    
+        return view('trips.eachplanning', [
+            'trip' => $trip,
+            'users' => $allUsers,  // 作成者と参加者を含む全ユーザー
+            'user' => auth()->user(),
+            'userRequests' => $userRequests ?? collect(),
+            'candidateDates' => $candidateDates ?? collect(),
+            'dateVotes' => $dateVotes ?? collect(),
+        ]);
     }
 
     /**
@@ -126,9 +139,26 @@ class TripController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Trip $trip)
     {
-        //
+        // 権限チェック
+        if (!$trip->users->contains(auth()->id()) && $trip->creator_id !== auth()->id()) {
+            return redirect()->route('trips.index')
+                ->with('error', 'この旅行計画を編集する権限がありません。');
+        }
+    
+        // バリデーション
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+        ]);
+    
+        // データ更新
+        $trip->update($validated);
+    
+        // リダイレクト（同じページに戻る）
+        return redirect()->route('trips.show', $trip)
+            ->with('success', '旅行計画が更新されました。');
     }
 
     /**
@@ -180,5 +210,83 @@ class TripController extends Controller
                 'message' => 'エラーが発生しました: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function showJoinConfirmation($token)
+    {
+        $trip = Trip::where('share_token', $token)->firstOrFail();
+    
+        // 未ログインの場合、現在のURLをセッションに保存
+        if (!auth()->check()) {
+            session(['url.intended' => request()->fullUrl()]);
+        }
+    
+        return view('trips.join-confirmation', compact('trip'));
+    }
+    
+    public function joinByToken($token)
+    {
+        $trip = Trip::where('share_token', $token)->firstOrFail();
+        
+        // 既に参加している場合
+        if ($trip->users->contains(auth()->id())) {
+            return redirect()->route('trips.each.planning', ['trip' => $trip->id])
+                ->with('info', 'すでにこの旅行計画に参加しています');
+        }
+        
+        // 参加処理
+        $trip->users()->attach(auth()->id());
+        
+        return redirect()->route('trips.each.planning', ['trip' => $trip->id])
+            ->with('success', '旅行計画に参加しました！');
+    }
+
+    // 共有リンクを生成するメソッド
+    public function generateShareLink(Trip $trip)
+    {
+        if (!$trip->share_token) {
+            $trip->generateShareToken();
+        }
+        
+        return response()->json([
+            'share_url' => route('trips.join', $trip->share_token)
+        ]);
+    }
+
+    public function eachPlanning(Trip $trip)
+    {
+        // ユーザーがこの旅行に参加しているか確認
+        if (!$trip->users->contains(auth()->id()) && $trip->creator_id !== auth()->id()) {
+            return redirect()->route('trips.index')
+                ->with('error', 'この旅行計画にアクセスする権限がありません。');
+        }
+
+        // 作成者と参加者を結合して一意のユーザーリストを作成
+        $allUsers = collect([$trip->creator])->concat($trip->users)->unique('id');
+
+        // 要望（trip_requests）とそれに関連するコメントといいねを取得
+        $userRequests = $trip->tripRequests()
+            ->with(['user', 'comments.user', 'likes.user'])
+            ->get();
+
+        // 候補日とその投票を取得
+        $candidateDates = $trip->candidateDates()
+            ->with(['user', 'dateVotes.user'])
+            ->orderBy('proposed_date')
+            ->get();
+
+        // 日程の投票を取得
+        $dateVotes = DateVote::where('trip_id', $trip->id)
+            ->with(['user', 'candidateDate'])
+            ->get();
+
+        return view('trips.eachplanning', [
+            'trip' => $trip,
+            'users' => $allUsers,  // 修正：作成者と参加者を含む全ユーザー
+            'user' => auth()->user(),
+            'userRequests' => $userRequests ?? collect(),
+            'candidateDates' => $candidateDates ?? collect(),
+            'dateVotes' => $dateVotes ?? collect(),
+        ]);
     }
 }

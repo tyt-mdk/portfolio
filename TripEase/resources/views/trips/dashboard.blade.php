@@ -45,9 +45,9 @@
         </div>
         <div>
             <p class="box-content p-4 text-lg font-semibold">通知一覧</p>
-            @if ($trips->isNotEmpty())
+            @if ($user->trips->isNotEmpty())
             <div class="mx-4 divide-y divide-dashed">
-                @foreach($trips as $trip)
+                @foreach($user->trips as $trip)
                 <div class="flex flex-row justify-between">
                     <div class="mb-4">
                         <p class="text-base">{{ $trip->title }}</p>
@@ -66,6 +66,8 @@
                 </div>
                 @endforeach
             </div>
+            @else
+                <p class="text-center text-slate-500 py-4">参加している旅行プランはありません</p>
             @endif
         </div>
     </main>

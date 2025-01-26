@@ -12,12 +12,12 @@ class RequestLike extends Model
         'user_id',
     ];
 
-    public function request(): BelongsTo
+    public function tripRequest()
     {
-        return $this->belongsTo(TripRequest::class, 'trip_request_id');
+        return $this->belongsTo(TripRequest::class);
     }
-
-    public function user(): BelongsTo
+    
+    public function user()
     {
         return $this->belongsTo(User::class);
     }

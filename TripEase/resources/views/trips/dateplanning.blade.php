@@ -90,10 +90,10 @@
             </section>
         </div>
     </main>
-    <footer  class="fixed bottom-0 left-0 right-0 bg-slate-50">
+    <footer class="fixed bottom-0 left-0 right-0 bg-slate-50">
         <div class="flex justify-around text-center h-20 text-sm">
             <!-- 戻るボタン -->
-            <a href="javascript:void(0)" onclick="history.back()" class="absolute left-4 top-1/2 -translate-y-1/2">
+            <a href="{{ route('trips.each.planning', ['trip' => $trip->id]) }}" class="absolute left-4 top-1/2 -translate-y-1/2">
                 <i class="fa-solid fa-chevron-left"></i>
                 <p>戻る</p>
             </a>

@@ -23,6 +23,23 @@ Route::middleware(['guest'])->group(function () {
     Route::post('/login', [LoginController::class, 'login']);
 });
 
+// 共有リンク生成
+Route::post('/trips/{trip}/share', [TripController::class, 'generateShareLink'])
+    ->name('trips.generateShareLink')
+    ->middleware('auth');
+
+Route::get('/trips/{trip}/planning', [TripController::class, 'eachPlanning'])
+    ->name('trips.each.planning');
+
+// 共有リンクからの参加確認画面
+Route::get('/trips/join/{token}', [TripController::class, 'showJoinConfirmation'])
+    ->name('trips.join');
+
+// 参加確認の処理
+Route::post('/trips/join/{token}/confirm', [TripController::class, 'joinByToken'])
+    ->name('trips.join.confirm')
+    ->middleware('auth');
+
 // 認証が必要なルート
 Route::middleware(['auth'])->group(function () {
     // ダッシュボード（ログイン後のリダイレクト先）

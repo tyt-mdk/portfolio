@@ -18,7 +18,12 @@ class RequestComment extends Model
         return $this->belongsTo(TripRequest::class, 'trip_request_id');
     }
 
-    public function user(): BelongsTo
+    public function tripRequest()
+    {
+        return $this->belongsTo(TripRequest::class);
+    }
+    
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
