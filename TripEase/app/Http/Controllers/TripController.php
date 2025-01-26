@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Trip;//追加
 use Illuminate\Support\Facades\Validator;//バリデーション追加
 use Illuminate\Support\Facades\Auth;//ユーザー情報
+use Illuminate\Support\Facades\DB; // DBファサードをインポート
 use App\Models\User;
 use App\Models\CandidateDate;
 use App\Models\DateVote;
@@ -37,37 +38,33 @@ class TripController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
+        // バリデーション
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
-            // 他のバリデーションルール...
+            'description' => 'required|string',
         ]);
-    
+
         // トランザクション開始
         DB::beginTransaction();
-        
         try {
-            // 旅行プランを作成
+            // 旅行プランの作成
             $trip = Trip::create([
-                'title' => $validatedData['title'],
-                'creator_id' => auth()->id(),
-                // 他のフィールド...
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'creator_id' => Auth::id(),
             ]);
-    
-            // 作成者を参加者として追加
-            $trip->users()->attach(auth()->id());
-    
+
+            // 作成者を参加者としても追加（必要な場合）
+            $trip->users()->attach(Auth::id());
+
             DB::commit();
-            
             return redirect()->route('trips.show', $trip)
-                ->with('success', '旅行プランを作成しました');
-                
+                           ->with('success', '旅行プランを作成しました。');
+
         } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Trip creation failed: ' . $e->getMessage());
-            
-            return back()
-                ->withInput()
-                ->with('error', '旅行プランの作成に失敗しました');
+            DB::rollback();
+            return back()->with('error', '旅行プランの作成に失敗しました。')
+                        ->withInput();
         }
     }
 

@@ -62,10 +62,16 @@ Route::middleware(['auth'])->group(function () {
     // 要望関連のルート
     Route::post('/trips/{trip}/request', [TripController::class, 'storeRequest'])
         ->name('trips.request');
+    Route::put('/trip-requests/{tripRequest}', [TripRequestController::class, 'update'])->name('requests.update');
+    Route::delete('/trip-requests/{tripRequest}', [TripRequestController::class, 'destroy'])->name('requests.destroy');
     Route::post('/requests/{request}/comment', [TripRequestController::class, 'storeComment'])
         ->name('requests.comment');
     Route::post('/requests/{request}/like', [TripRequestController::class, 'toggleLike'])
         ->name('requests.like');
+
+    // コメントの更新と削除
+    Route::put('/request-comments/{comment}', [RequestCommentController::class, 'update'])->name('request.comments.update');
+    Route::delete('/request-comments/{comment}', [RequestCommentController::class, 'destroy'])->name('request.comments.destroy');
 });
 
 // 候補日関連のAPI

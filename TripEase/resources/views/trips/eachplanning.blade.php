@@ -72,9 +72,9 @@
                 <!-- 区切り線 -->
                 <div class="border-t border-slate-200"></div>
 
-                <!-- 目的 -->
+                <!-- 概要メモ -->
                 <div class="space-y-1">
-                    <p class="text-slate-400 text-sm">目的</p>
+                    <p class="text-slate-400 text-sm">概要メモ</p>
                     <div class="view-mode-only">
                         <p class="text-slate-700 whitespace-pre-wrap">{{ $trip->description }}</p>
                     </div>
@@ -256,49 +256,121 @@
                                     {{ \Carbon\Carbon::parse($request->created_at)->format('n/j H:i') }}
                                 </p>
                             </div>
-                            <!-- いいねボタン -->
-                            <button 
-                                onclick="toggleLike({{ $request->id }}, this)" 
-                                class="like-button flex items-center space-x-1 {{ $request->isLikedBy(Auth::user()) ? 'text-red-500' : 'text-slate-400' }}"
-                                data-liked="{{ $request->isLikedBy(Auth::user()) ? 'true' : 'false' }}"
-                            >
-                                <i class="fa-heart {{ $request->isLikedBy(Auth::user()) ? 'fas' : 'far' }}"></i>
-                                <span class="like-count">{{ $request->likes->count() }}</span>
-                            </button>
+                            <div class="flex items-center space-x-2">
+                                <!-- いいねボタン -->
+                                <button 
+                                    onclick="toggleLike({{ $request->id }}, this)" 
+                                    class="like-button flex items-center space-x-1 {{ $request->isLikedBy(Auth::user()) ? 'text-red-500' : 'text-slate-400' }}"
+                                    data-liked="{{ $request->isLikedBy(Auth::user()) ? 'true' : 'false' }}"
+                                >
+                                    <i class="fa-heart {{ $request->isLikedBy(Auth::user()) ? 'fas' : 'far' }}"></i>
+                                    <span class="like-count">{{ $request->likes->count() }}</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- 要望内容 -->
-                        <p class="mt-2 text-slate-600">{{ $request->content }}</p>
-
-                        <!-- コメント一覧 -->
-                        <div class="mt-2 pl-4 space-y-2">
-                            @foreach($request->comments as $comment)
-                                <div class="flex items-start space-x-2">
-                                    <p class="font-medium text-slate-700">{{ $comment->user->name }}</p>
-                                    <p class="text-slate-600">{{ $comment->content }}</p>
+                        @if($request->user_id === Auth::id())
+                            <div class="mt-2">
+                                <div class="flex items-start justify-between group">
+                                    <div class="flex-1" data-editable data-type="request" data-id="{{ $request->id }}">
+                                        <p class="text-slate-600 edit-mode-only:cursor-pointer edit-mode-only:hover:bg-slate-50 rounded px-2 py-1" 
+                                        id="request-content-{{ $request->id }}">
+                                            {{ $request->content }}
+                                        </p>
+                                        <form action="{{ route('requests.update', $request->id) }}" 
+                                            method="POST" 
+                                            class="hidden"
+                                            id="request-edit-form-{{ $request->id }}">
+                                            @csrf
+                                            @method('PUT')
+                                            <textarea name="content" 
+                                                    class="w-full px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
+                                                    rows="2">{{ $request->content }}</textarea>
+                                        </form>
+                                    </div>
+                                    <!-- 操作ボタン -->
+                                    <div class="flex items-start space-x-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity edit-mode-only">
+                                        <!-- キャンセルボタン -->
+                                        <button onclick="cancelEdit('request', {{ $request->id }})" 
+                                                class="hidden text-slate-400 hover:text-slate-600 transition-colors"
+                                                id="request-cancel-{{ $request->id }}">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                        
+                                        <!-- 削除ボタン -->
+                                        <div x-data="{ showDeleteModal: false }" class="relative">
+                                            <button @click="showDeleteModal = true" 
+                                                    class="text-slate-400 hover:text-rose-500 transition-colors">
+                                                <i class="fa-solid fa-trash text-sm"></i>
+                                            </button>
+                                            <!-- 削除確認モーダル -->
+                                            <!-- ... 既存のモーダルコード ... -->
+                                        </div>
+                                    </div>
                                 </div>
-                            @endforeach
+                            @else
+                                <!-- 他ユーザーの要望（編集不可） -->
+                                <div class="mt-2">
+                                    <p class="text-slate-600 px-2 py-1">{{ $request->content }}</p>
+                                </div>
+                            @endif
                         </div>
 
-                        <!-- コメント追加フォーム -->
-                        <form method="POST" action="{{ route('requests.comment', $request->id) }}" class="mt-2 pl-4 edit-mode-only">
-                            @csrf
-                            <div class="flex items-center space-x-2">
-                                <input 
-                                    type="text" 
-                                    name="content" 
-                                    placeholder="コメントを追加" 
-                                    class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
-                                    required
-                                >
-                                <button 
-                                    type="submit" 
-                                    class="px-3 py-1 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition-colors"
-                                >
-                                    送信
-                                </button>
-                            </div>
-                        </form>
+                        <!-- コメント一覧 -->
+                        <div class="mt-4 pl-4 space-y-2">
+                            @foreach($request->comments as $comment)
+                                <div class="flex items-start justify-between group">
+                                    <div class="flex items-start space-x-2">
+                                        <p class="font-medium text-slate-700">{{ $comment->user->name }}</p>
+                                        <p class="text-slate-400">{{ \Carbon\Carbon::parse($comment->created_at)->format('n/j H:i') }}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- コメント内容 -->
+                                @if($comment->user_id === Auth::id())
+                                    <div class="flex items-start justify-between group">
+                                        <div class="flex-1" data-editable data-type="comment" data-id="{{ $comment->id }}">
+                                            <p class="text-slate-600 edit-mode-only:cursor-pointer edit-mode-only:hover:bg-slate-50 rounded px-2 py-1" 
+                                            id="comment-content-{{ $comment->id }}">
+                                                {{ $comment->content }}
+                                            </p>
+                                            <form action="{{ route('request.comments.update', $comment->id) }}" 
+                                                method="POST" 
+                                                class="hidden"
+                                                id="comment-edit-form-{{ $comment->id }}">
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="text" 
+                                                    name="content" 
+                                                    value="{{ $comment->content }}"
+                                                    class="w-full px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
+                                            </form>
+                                        </div>
+                                        <!-- 操作ボタン -->
+                                        <div class="flex items-start space-x-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity edit-mode-only">
+                                            <!-- キャンセルボタン -->
+                                            <button onclick="cancelEdit('comment', {{ $comment->id }})" 
+                                                    class="hidden text-slate-400 hover:text-slate-600 transition-colors"
+                                                    id="comment-cancel-{{ $comment->id }}">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                            <!-- 削除ボタン -->
+                                            <div x-data="{ showDeleteModal: false }" class="relative">
+                                                <button @click="showDeleteModal = true" 
+                                                        class="text-slate-400 hover:text-rose-500 transition-colors">
+                                                    <i class="fa-solid fa-trash text-sm"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="flex-1">
+                                        <p class="text-slate-600 px-2 py-1">{{ $comment->content }}</p>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
                 @endforeach
             </div>
@@ -354,7 +426,7 @@
             </div>
 
             <!-- フッターの本体部分 -->
-            <div class="grid grid-cols-3 items-start h-20 text-sm">
+            <div class="grid grid-cols-3 items-start h-20 text-sm pt-1">
                 <!-- 戻るボタン（左） -->
                 <div class="justify-self-start">
                     <a href="{{ route('dashboard') }}" class="flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
@@ -365,7 +437,7 @@
                 <!-- 確定ボタン（中央） -->
                 <div class="justify-self-center w-full px-2">
                     <button type="submit" 
-                            form="tripEditForm" 
+                            onclick="submitAllForms()"
                             class="flex items-center justify-center mx-auto w-32 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full transition-colors edit-mode-only">
                         <i class="fa-solid fa-check"></i>
                     </button>
@@ -378,22 +450,194 @@
     </footer>
 
     <script>
+        function startEdit(type, id) {
+            // 編集モードでない場合は何もしない
+            if (!document.body.classList.contains('edit-mode')) {
+                return;
+            }
+            
+            const contentElement = document.getElementById(`${type}-content-${id}`);
+            const formElement = document.getElementById(`${type}-edit-form-${id}`);
+            const cancelButton = document.getElementById(`${type}-cancel-${id}`);
+            
+            if (!contentElement || !formElement || !cancelButton) {
+                console.error('Required elements not found');
+                return;
+            }
+
+            // 通常表示を隠す
+            contentElement.style.display = 'none';
+            // 編集フォームを表示
+            formElement.style.display = 'block';
+            // キャンセルボタンを表示
+            cancelButton.style.display = 'block';
+        }
+
+        function switchMode(mode) {
+            const viewTab = document.getElementById('viewTab');
+            const editTab = document.getElementById('editTab');
+            const viewElements = document.querySelectorAll('.view-mode-only');
+            const editElements = document.querySelectorAll('.edit-mode-only');
+            
+            if (mode === 'view') {
+                // すべての編集フォームを強制的に非表示にし、通常表示を表示する
+                document.querySelectorAll('[data-editable]').forEach(el => {
+                    const type = el.getAttribute('data-type');
+                    const id = el.getAttribute('data-id');
+                    
+                    // 編集フォームを非表示
+                    const form = document.getElementById(`${type}-edit-form-${id}`);
+                    if (form) {
+                        form.style.display = 'none';
+                        // フォーム内の入力要素を無効化
+                        const inputs = form.querySelectorAll('input, textarea');
+                        inputs.forEach(input => input.disabled = true);
+                    }
+                    
+                    // 通常表示を表示
+                    const content = document.getElementById(`${type}-content-${id}`);
+                    if (content) {
+                        content.style.display = 'block';
+                    }
+                    
+                    // キャンセルボタンを非表示
+                    const cancelBtn = document.getElementById(`${type}-cancel-${id}`);
+                    if (cancelBtn) {
+                        cancelBtn.style.display = 'none';
+                    }
+
+                    // クリックイベントを削除
+                    el.removeAttribute('onclick');
+                });
+
+                viewTab.classList.add('active');
+                editTab.classList.remove('active');
+                viewElements.forEach(el => el.classList.remove('hidden'));
+                editElements.forEach(el => el.classList.add('hidden'));
+                document.body.classList.remove('edit-mode');
+            } else {
+                // 編集モードに切り替え時、入力要素を有効化
+                document.querySelectorAll('[data-editable]').forEach(el => {
+                    const type = el.getAttribute('data-type');
+                    const id = el.getAttribute('data-id');
+                    
+                    const form = document.getElementById(`${type}-edit-form-${id}`);
+                    if (form) {
+                        const inputs = form.querySelectorAll('input, textarea');
+                        inputs.forEach(input => input.disabled = false);
+                    }
+
+                    // クリックイベントを追加
+                    el.setAttribute('onclick', `startEdit('${type}', ${id})`);
+                });
+
+                editTab.classList.add('active');
+                viewTab.classList.remove('active');
+                viewElements.forEach(el => el.classList.add('hidden'));
+                editElements.forEach(el => el.classList.remove('hidden'));
+                document.body.classList.add('edit-mode');
+            }
+        }
+
+        function handleEdit(event) {
+            const el = event.currentTarget;
+            const type = el.getAttribute('data-type');
+            const id = el.getAttribute('data-id');
+            if (type && id) {
+                startEdit(type, id);
+            }
+        }
+
+        // 初期設定
+        document.addEventListener('DOMContentLoaded', () => {
+            switchMode('view');
+        });
+    
+        function cancelEdit(type, id) {
+            // 編集フォームを隠す
+            document.getElementById(`${type}-edit-form-${id}`).style.display = 'none';
+            // 通常表示を表示
+            document.getElementById(`${type}-content-${id}`).style.display = 'block';
+            // キャンセルボタンを隠す
+            document.getElementById(`${type}-cancel-${id}`).style.display = 'none';
+        }
+    
+        function submitAllForms() {
+            // 表示されている編集フォームを探して送信
+            const visibleForms = document.querySelectorAll('form[id$="-edit-form-"]:not([style*="display: none"])');
+            let formCount = visibleForms.length;
+            
+            if (formCount === 0) {
+                switchMode('view');
+                return;
+            }
+
+            // 各フォームを非同期で送信
+            visibleForms.forEach(form => {
+                const formData = new FormData(form);
+                
+                // PUTメソッドを明示的に指定
+                formData.append('_method', 'PUT');
+                
+                fetch(form.action, {
+                    method: 'POST', // POSTメソッドで送信し、_methodで上書き
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // 更新成功時、表示内容を更新
+                        const type = form.id.includes('request') ? 'request' : 'comment';
+                        const id = form.id.match(/\d+/)[0];
+                        const content = document.getElementById(`${type}-content-${id}`);
+                        if (content) {
+                            content.textContent = formData.get('content');
+                        }
+                        
+                        // フォームを非表示に
+                        form.style.display = 'none';
+                        content.style.display = 'block';
+                        
+                        // キャンセルボタンを非表示に
+                        const cancelBtn = document.getElementById(`${type}-cancel-${id}`);
+                        if (cancelBtn) {
+                            cancelBtn.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('更新に失敗しました');
+                });
+            });
+
+            // 表示モードに切り替え
+            switchMode('view');
+        }
+    
         // フラッシュメッセージを自動的に消す
         document.addEventListener('DOMContentLoaded', function() {
             const successMessage = document.getElementById('successMessage');
             const errorMessage = document.getElementById('errorMessage');
-
+    
             if (successMessage) {
-                // 3秒後にフェードアウトを開始
                 setTimeout(() => {
                     successMessage.style.opacity = '0';
-                    // フェードアウトが完了したら要素を削除
                     setTimeout(() => {
                         successMessage.remove();
                     }, 500);
                 }, 3000);
             }
-
+    
             if (errorMessage) {
                 setTimeout(() => {
                     errorMessage.style.opacity = '0';
@@ -403,58 +647,13 @@
                 }, 3000);
             }
         });
-
-        function switchMode(mode) {
-            const viewTab = document.getElementById('viewTab');
-            const editTab = document.getElementById('editTab');
-            const viewElements = document.querySelectorAll('.view-mode-only');
-            const editElements = document.querySelectorAll('.edit-mode-only');
-            
-            if (mode === 'view') {
-                viewTab.classList.add('active');
-                editTab.classList.remove('active');
-                viewElements.forEach(el => el.classList.remove('hidden'));
-                editElements.forEach(el => el.classList.add('hidden'));
-            } else {
-                editTab.classList.add('active');
-                viewTab.classList.remove('active');
-                viewElements.forEach(el => el.classList.add('hidden'));
-                editElements.forEach(el => el.classList.remove('hidden'));
-            }
-        }
-
+    
         // 初期状態は表示モード
         document.addEventListener('DOMContentLoaded', () => {
             switchMode('view');
         });
-
-        function toggleLike(requestId) {
-            fetch(`/requests/${requestId}/like`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                // いいねの状態を更新
-                const button = event.currentTarget;
-                const icon = button.querySelector('i');
-                const count = button.querySelector('span');
-                
-                if (data.liked) {
-                    icon.classList.remove('fa-regular');
-                    icon.classList.add('fa-solid');
-                } else {
-                    icon.classList.remove('fa-solid');
-                    icon.classList.add('fa-regular');
-                }
-                
-                count.textContent = data.count;
-            });
-        }
-        // いいねボタンのjava処理
+    
+        // いいねボタンの処理
         function toggleLike(requestId, button) {
             fetch(`/requests/${requestId}/like`, {
                 method: 'POST',
@@ -484,7 +683,6 @@
                     button.classList.add('text-slate-400');
                 }
                 
-                // いいね数を更新
                 countSpan.textContent = data.count;
             })
             .catch(error => console.error('Error:', error));

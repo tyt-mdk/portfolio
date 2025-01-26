@@ -90,13 +90,22 @@
             </section>
         </div>
     </main>
-    <footer class="fixed bottom-0 left-0 right-0 bg-slate-50">
-        <div class="flex justify-around text-center h-20 text-sm">
-            <!-- 戻るボタン -->
-            <a href="{{ route('trips.each.planning', ['trip' => $trip->id]) }}" class="absolute left-4 top-1/2 -translate-y-1/2">
-                <i class="fa-solid fa-chevron-left"></i>
-                <p>戻る</p>
-            </a>
+    <!-- フッター -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-slate-50 shadow-lg">
+        <div class="max-w-4xl mx-auto px-4">
+            <!-- フッターの本体部分 -->
+            <div class="grid grid-cols-3 items-start h-20 text-sm pt-1">
+                <!-- 戻るボタン（左） -->
+                <div class="justify-self-start">
+                    <a href="{{ route('trips.each.planning', ['trip' => $trip->id]) }}" 
+                    class="flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
+                        <i class="fa-solid fa-chevron-left text-slate-600"></i>
+                    </a>
+                </div>
+                <!-- 中央と右側は空 -->
+                <div></div>
+                <div></div>
+            </div>
         </div>
     </footer>
 
