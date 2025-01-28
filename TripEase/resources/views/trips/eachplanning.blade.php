@@ -25,6 +25,52 @@
             color: #1e293b;  /* text-slate-900相当 */
             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);  /* shadow-sm相当 */
         }
+        .edit-mode-only {
+            display: none !important;
+        }
+        body.edit-mode .edit-mode-only {
+            display: block !important;
+        }
+        /* flexコンテナ用の追加定義 */
+        body.edit-mode .edit-mode-only.flex {
+            display: flex !important;
+        }
+        body:not(.edit-mode) .view-mode-only {
+            display: block;
+        }
+        body.edit-mode .view-mode-only {
+            display: none;
+        }
+        .edit-mode [data-editable] p {
+            cursor: pointer;
+        }
+        [data-editable] form {
+            display: none;
+        }
+        body.edit-mode [data-editable].editing form {
+            display: block;
+        }
+        // 削除確認用のトースト通知のスタイルを追加
+        .confirm-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .confirm-toast button {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
     </style>
 
     <title>Tripease</title>
@@ -247,129 +293,132 @@
             <div class="space-y-4">
                 @foreach($userRequests as $request)
                     <div class="border-b border-slate-100 last:border-0 pb-4">
+                        <!-- ヘッダー部分（ユーザー名、日時、いいねボタン） -->
                         <div class="flex items-start justify-between">
                             <div class="flex items-start space-x-2">
-                                <!-- ユーザー名 -->
                                 <p class="font-medium text-slate-700">{{ $request->user->name }}</p>
-                                <!-- 投稿日時 -->
                                 <p class="text-slate-400">
                                     {{ \Carbon\Carbon::parse($request->created_at)->format('n/j H:i') }}
                                 </p>
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <!-- いいねボタン -->
-                                <button 
-                                    onclick="toggleLike({{ $request->id }}, this)" 
-                                    class="like-button flex items-center space-x-1 {{ $request->isLikedBy(Auth::user()) ? 'text-red-500' : 'text-slate-400' }}"
-                                    data-liked="{{ $request->isLikedBy(Auth::user()) ? 'true' : 'false' }}"
-                                >
-                                    <i class="fa-heart {{ $request->isLikedBy(Auth::user()) ? 'fas' : 'far' }}"></i>
-                                    <span class="like-count">{{ $request->likes->count() }}</span>
-                                </button>
-                            </div>
+                            <!-- いいねボタン -->
+                            <button 
+                                onclick="toggleLike({{ $request->id }}, this)" 
+                                class="like-button flex items-center space-x-1 {{ $request->isLikedBy(Auth::user()) ? 'text-red-500' : 'text-slate-400' }}"
+                            >
+                                <i class="fa-heart {{ $request->isLikedBy(Auth::user()) ? 'fas' : 'far' }}"></i>
+                                <span class="like-count">{{ $request->likes->count() }}</span>
+                            </button>
                         </div>
 
                         <!-- 要望内容 -->
-                        @if($request->user_id === Auth::id())
-                            <div class="mt-2">
-                                <div class="flex items-start justify-between group">
-                                    <div class="flex-1" data-editable data-type="request" data-id="{{ $request->id }}">
-                                        <p class="text-slate-600 edit-mode-only:cursor-pointer edit-mode-only:hover:bg-slate-50 rounded px-2 py-1" 
-                                        id="request-content-{{ $request->id }}">
-                                            {{ $request->content }}
-                                        </p>
-                                        <form action="{{ route('requests.update', $request->id) }}" 
-                                            method="POST" 
-                                            class="hidden"
-                                            id="request-edit-form-{{ $request->id }}">
-                                            @csrf
-                                            @method('PUT')
-                                            <textarea name="content" 
-                                                    class="w-full px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
-                                                    rows="2">{{ $request->content }}</textarea>
-                                        </form>
-                                    </div>
-                                    <!-- 操作ボタン -->
-                                    <div class="flex items-start space-x-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity edit-mode-only">
-                                        <!-- キャンセルボタン -->
-                                        <button onclick="cancelEdit('request', {{ $request->id }})" 
-                                                class="hidden text-slate-400 hover:text-slate-600 transition-colors"
-                                                id="request-cancel-{{ $request->id }}">
+                        <div class="flex-1" data-editable data-type="request" data-id="{{ $request->id }}">
+                            <!-- 表示モード -->
+                            <div id="request-content-{{ $request->id }}">
+                                <p class="text-slate-600 rounded px-2 py-1 transition-colors hover:bg-slate-50">
+                                    {{ $request->content }}
+                                </p>
+                            </div>
+                            <!-- 編集モード -->
+                            <form id="request-edit-form-{{ $request->id }}"
+                                    style="display: none;"
+                                    onsubmit="return false;">
+                                @csrf
+                                @method('PUT')
+                                <div class="flex items-start space-x-2">
+                                    <textarea name="content" 
+                                            class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
+                                            rows="2">{{ $request->content }}</textarea>
+                                    <div class="flex items-center space-x-1">
+                                        <button type="button" 
+                                                onclick="cancelEdit('request', {{ $request->id }})"
+                                                class="p-1 text-slate-400 hover:text-slate-600">
                                             <i class="fa-solid fa-xmark"></i>
                                         </button>
-                                        
-                                        <!-- 削除ボタン -->
-                                        <div x-data="{ showDeleteModal: false }" class="relative">
-                                            <button @click="showDeleteModal = true" 
-                                                    class="text-slate-400 hover:text-rose-500 transition-colors">
-                                                <i class="fa-solid fa-trash text-sm"></i>
-                                            </button>
-                                            <!-- 削除確認モーダル -->
-                                            <!-- ... 既存のモーダルコード ... -->
-                                        </div>
+                                        <button type="button" 
+                                                onclick="deleteRequest({{ $request->id }})"
+                                                class="p-1 text-slate-400 hover:text-rose-500 edit-mode-only">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </div>
                                 </div>
-                            @else
-                                <!-- 他ユーザーの要望（編集不可） -->
-                                <div class="mt-2">
-                                    <p class="text-slate-600 px-2 py-1">{{ $request->content }}</p>
-                                </div>
-                            @endif
+                            </form>
                         </div>
 
                         <!-- コメント一覧 -->
                         <div class="mt-4 pl-4 space-y-2">
                             @foreach($request->comments as $comment)
-                                <div class="flex items-start justify-between group">
+                                <div class="group">
+                                    <!-- コメントヘッダー -->
                                     <div class="flex items-start space-x-2">
                                         <p class="font-medium text-slate-700">{{ $comment->user->name }}</p>
-                                        <p class="text-slate-400">{{ \Carbon\Carbon::parse($comment->created_at)->format('n/j H:i') }}</p>
+                                        <p class="text-slate-400">
+                                            {{ \Carbon\Carbon::parse($comment->created_at)->format('n/j H:i') }}
+                                        </p>
                                     </div>
-                                </div>
-                                
-                                <!-- コメント内容 -->
-                                @if($comment->user_id === Auth::id())
-                                    <div class="flex items-start justify-between group">
-                                        <div class="flex-1" data-editable data-type="comment" data-id="{{ $comment->id }}">
-                                            <p class="text-slate-600 edit-mode-only:cursor-pointer edit-mode-only:hover:bg-slate-50 rounded px-2 py-1" 
-                                            id="comment-content-{{ $comment->id }}">
-                                                {{ $comment->content }}
-                                            </p>
-                                            <form action="{{ route('request.comments.update', $comment->id) }}" 
-                                                method="POST" 
-                                                class="hidden"
-                                                id="comment-edit-form-{{ $comment->id }}">
+                                    
+                                    <!-- コメント内容 -->
+                                    @if($comment->user_id === Auth::id())
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex-1" data-editable data-type="comment" data-id="{{ $comment->id }}">
+                                                <!-- 表示モード -->
+                                                <div id="comment-content-{{ $comment->id }}">
+                                                    <p class="text-slate-600 rounded px-2 py-1 transition-colors hover:bg-slate-50">
+                                                        {{ $comment->content }}
+                                                    </p>
+                                                </div>
+                                                <!-- コメントの編集フォーム -->
+                                                <form action="{{ route('request.comments.update', $comment->id) }}" 
+                                                    method="POST" 
+                                                    style="display: none;"
+                                                    id="comment-edit-form-{{ $comment->id }}"
+                                                    onsubmit="return false;">
                                                 @csrf
                                                 @method('PUT')
-                                                <input type="text" 
-                                                    name="content" 
-                                                    value="{{ $comment->content }}"
-                                                    class="w-full px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
-                                            </form>
-                                        </div>
-                                        <!-- 操作ボタン -->
-                                        <div class="flex items-start space-x-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity edit-mode-only">
-                                            <!-- キャンセルボタン -->
-                                            <button onclick="cancelEdit('comment', {{ $comment->id }})" 
-                                                    class="hidden text-slate-400 hover:text-slate-600 transition-colors"
-                                                    id="comment-cancel-{{ $comment->id }}">
-                                                <i class="fa-solid fa-xmark"></i>
-                                            </button>
-                                            <!-- 削除ボタン -->
-                                            <div x-data="{ showDeleteModal: false }" class="relative">
-                                                <button @click="showDeleteModal = true" 
-                                                        class="text-slate-400 hover:text-rose-500 transition-colors">
-                                                    <i class="fa-solid fa-trash text-sm"></i>
+                                                <div class="flex items-start space-x-2">
+                                                    <input type="text" 
+                                                            name="content" 
+                                                            value="{{ $comment->content }}"
+                                                            class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
+                                                    <div class="flex items-center space-x-1">
+                                                        <button type="button" 
+                                                                onclick="cancelEdit('comment', {{ $comment->id }})"
+                                                                class="p-1 text-slate-400 hover:text-slate-600">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                </form>
+                                            </div>
+                                            <!-- 削除ボタン（編集モードのみ表示） -->
+                                            <div class="edit-mode-only opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button type="button"
+                                                        onclick="deleteComment({{ $comment->id }})" 
+                                                        class="p-1 text-slate-400 hover:text-rose-500">
+                                                    <i class="fa-solid fa-trash"></i>
                                                 </button>
                                             </div>
                                         </div>
-                                    </div>
-                                @else
-                                    <div class="flex-1">
+                                    @else
                                         <p class="text-slate-600 px-2 py-1">{{ $comment->content }}</p>
-                                    </div>
-                                @endif
+                                    @endif
+                                </div>
                             @endforeach
+
+                            <!-- コメント入力フォーム -->
+                            <div class="mt-4 pl-4 edit-mode-only">
+                                <form action="{{ route('requests.comment', $request->id) }}" method="POST" class="flex items-start space-x-2">
+                                    @csrf
+                                    <input type="text" 
+                                        name="content" 
+                                        placeholder="コメントを入力" 
+                                        class="flex-1 px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
+                                    <button type="submit" 
+                                            class="px-3 py-1.5 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition-colors">
+                                        送信
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 @endforeach
@@ -435,10 +484,10 @@
                 </div>
 
                 <!-- 確定ボタン（中央） -->
-                <div class="justify-self-center w-full px-2">
+                <div class="justify-self-center w-full px-2 edit-mode-only" style="display: none;">
                     <button type="submit" 
                             onclick="submitAllForms()"
-                            class="flex items-center justify-center mx-auto w-32 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full transition-colors edit-mode-only">
+                            class="flex items-center justify-center mx-auto w-32 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full transition-colors">
                         <i class="fa-solid fa-check"></i>
                     </button>
                 </div>
@@ -450,221 +499,76 @@
     </footer>
 
     <script>
-        function startEdit(type, id) {
-            // 編集モードでない場合は何もしない
-            if (!document.body.classList.contains('edit-mode')) {
-                return;
+        // スタイルの定義
+        const toastStyles = {
+            confirm: `
+                fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                bg-white/95 backdrop-blur-sm p-6 rounded-lg shadow-lg z-50 
+                flex flex-col items-center space-y-4 min-w-[300px]
+            `,
+            message: `
+                flex flex-col items-center text-center space-y-1
+            `,
+            buttonContainer: `
+                flex items-center justify-center space-x-3 w-full
+            `,
+            button: {
+                cancel: 'px-6 py-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors flex-1',
+                delete: 'px-6 py-2 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors flex-1'
             }
+        };
+
+        function createDeleteConfirmation(type, id) {
+            // 既存のトーストがあれば削除
+            document.querySelector('.confirm-toast')?.remove();
             
-            const contentElement = document.getElementById(`${type}-content-${id}`);
-            const formElement = document.getElementById(`${type}-edit-form-${id}`);
-            const cancelButton = document.getElementById(`${type}-cancel-${id}`);
+            const toast = document.createElement('div');
+            toast.className = `confirm-toast ${toastStyles.confirm}`;
+            toast.innerHTML = `
+                <div class="${toastStyles.message}">
+                    <p class="text-slate-700">この${type === 'comment' ? 'コメント' : '要望'}を削除します。</p>
+                    <p class="text-slate-500 text-sm">削除された${type === 'comment' ? 'コメント' : '要望'}は復旧できません。</p>
+                </div>
+                <div class="${toastStyles.buttonContainer}">
+                    <button type="button" class="${toastStyles.button.cancel}" data-action="cancel">キャンセル</button>
+                    <button type="button" class="${toastStyles.button.delete}" data-action="delete">削除</button>
+                </div>
+            `;
             
-            if (!contentElement || !formElement || !cancelButton) {
-                console.error('Required elements not found');
-                return;
-            }
-
-            // 通常表示を隠す
-            contentElement.style.display = 'none';
-            // 編集フォームを表示
-            formElement.style.display = 'block';
-            // キャンセルボタンを表示
-            cancelButton.style.display = 'block';
-        }
-
-        function switchMode(mode) {
-            const viewTab = document.getElementById('viewTab');
-            const editTab = document.getElementById('editTab');
-            const viewElements = document.querySelectorAll('.view-mode-only');
-            const editElements = document.querySelectorAll('.edit-mode-only');
-            
-            if (mode === 'view') {
-                // すべての編集フォームを強制的に非表示にし、通常表示を表示する
-                document.querySelectorAll('[data-editable]').forEach(el => {
-                    const type = el.getAttribute('data-type');
-                    const id = el.getAttribute('data-id');
-                    
-                    // 編集フォームを非表示
-                    const form = document.getElementById(`${type}-edit-form-${id}`);
-                    if (form) {
-                        form.style.display = 'none';
-                        // フォーム内の入力要素を無効化
-                        const inputs = form.querySelectorAll('input, textarea');
-                        inputs.forEach(input => input.disabled = true);
-                    }
-                    
-                    // 通常表示を表示
-                    const content = document.getElementById(`${type}-content-${id}`);
-                    if (content) {
-                        content.style.display = 'block';
-                    }
-                    
-                    // キャンセルボタンを非表示
-                    const cancelBtn = document.getElementById(`${type}-cancel-${id}`);
-                    if (cancelBtn) {
-                        cancelBtn.style.display = 'none';
-                    }
-
-                    // クリックイベントを削除
-                    el.removeAttribute('onclick');
-                });
-
-                viewTab.classList.add('active');
-                editTab.classList.remove('active');
-                viewElements.forEach(el => el.classList.remove('hidden'));
-                editElements.forEach(el => el.classList.add('hidden'));
-                document.body.classList.remove('edit-mode');
-            } else {
-                // 編集モードに切り替え時、入力要素を有効化
-                document.querySelectorAll('[data-editable]').forEach(el => {
-                    const type = el.getAttribute('data-type');
-                    const id = el.getAttribute('data-id');
-                    
-                    const form = document.getElementById(`${type}-edit-form-${id}`);
-                    if (form) {
-                        const inputs = form.querySelectorAll('input, textarea');
-                        inputs.forEach(input => input.disabled = false);
-                    }
-
-                    // クリックイベントを追加
-                    el.setAttribute('onclick', `startEdit('${type}', ${id})`);
-                });
-
-                editTab.classList.add('active');
-                viewTab.classList.remove('active');
-                viewElements.forEach(el => el.classList.add('hidden'));
-                editElements.forEach(el => el.classList.remove('hidden'));
-                document.body.classList.add('edit-mode');
-            }
-        }
-
-        function handleEdit(event) {
-            const el = event.currentTarget;
-            const type = el.getAttribute('data-type');
-            const id = el.getAttribute('data-id');
-            if (type && id) {
-                startEdit(type, id);
-            }
-        }
-
-        // 初期設定
-        document.addEventListener('DOMContentLoaded', () => {
-            switchMode('view');
-        });
-    
-        function cancelEdit(type, id) {
-            // 編集フォームを隠す
-            document.getElementById(`${type}-edit-form-${id}`).style.display = 'none';
-            // 通常表示を表示
-            document.getElementById(`${type}-content-${id}`).style.display = 'block';
-            // キャンセルボタンを隠す
-            document.getElementById(`${type}-cancel-${id}`).style.display = 'none';
-        }
-    
-        function submitAllForms() {
-            // 表示されている編集フォームを探して送信
-            const visibleForms = document.querySelectorAll('form[id$="-edit-form-"]:not([style*="display: none"])');
-            let formCount = visibleForms.length;
-            
-            if (formCount === 0) {
-                switchMode('view');
-                return;
-            }
-
-            // 各フォームを非同期で送信
-            visibleForms.forEach(form => {
-                const formData = new FormData(form);
-                
-                // PUTメソッドを明示的に指定
-                formData.append('_method', 'PUT');
-                
-                fetch(form.action, {
-                    method: 'POST', // POSTメソッドで送信し、_methodで上書き
-                    body: formData,
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // 更新成功時、表示内容を更新
-                        const type = form.id.includes('request') ? 'request' : 'comment';
-                        const id = form.id.match(/\d+/)[0];
-                        const content = document.getElementById(`${type}-content-${id}`);
-                        if (content) {
-                            content.textContent = formData.get('content');
-                        }
-                        
-                        // フォームを非表示に
-                        form.style.display = 'none';
-                        content.style.display = 'block';
-                        
-                        // キャンセルボタンを非表示に
-                        const cancelBtn = document.getElementById(`${type}-cancel-${id}`);
-                        if (cancelBtn) {
-                            cancelBtn.style.display = 'none';
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('更新に失敗しました');
-                });
+            // イベントリスナーを追加
+            toast.querySelector('[data-action="delete"]').addEventListener('click', () => {
+                confirmDelete(type, id);
             });
-
-            // 表示モードに切り替え
-            switchMode('view');
+            
+            toast.querySelector('[data-action="cancel"]').addEventListener('click', () => {
+                toast.remove();
+            });
+            
+            document.body.appendChild(toast);
         }
-    
-        // フラッシュメッセージを自動的に消す
-        document.addEventListener('DOMContentLoaded', function() {
-            const successMessage = document.getElementById('successMessage');
-            const errorMessage = document.getElementById('errorMessage');
-    
-            if (successMessage) {
-                setTimeout(() => {
-                    successMessage.style.opacity = '0';
-                    setTimeout(() => {
-                        successMessage.remove();
-                    }, 500);
-                }, 3000);
-            }
-    
-            if (errorMessage) {
-                setTimeout(() => {
-                    errorMessage.style.opacity = '0';
-                    setTimeout(() => {
-                        errorMessage.remove();
-                    }, 500);
-                }, 3000);
-            }
-        });
-    
-        // 初期状態は表示モード
-        document.addEventListener('DOMContentLoaded', () => {
-            switchMode('view');
-        });
-    
-        // いいねボタンの処理
+
+        // トースト通知の表示関数
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg text-sm ${
+                type === 'success' ? 'bg-sky-500/90' : 'bg-rose-500/90'
+            } text-white shadow-sm backdrop-blur-sm z-50`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // いいね機能の実装
         function toggleLike(requestId, button) {
             fetch(`/requests/${requestId}/like`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json',
                     'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    request_id: requestId
-                })
+                }
             })
             .then(response => response.json())
             .then(data => {
@@ -674,8 +578,8 @@
                 if (data.liked) {
                     icon.classList.remove('far');
                     icon.classList.add('fas');
-                    button.classList.add('text-red-500');
                     button.classList.remove('text-slate-400');
+                    button.classList.add('text-red-500');
                 } else {
                     icon.classList.remove('fas');
                     icon.classList.add('far');
@@ -687,6 +591,266 @@
             })
             .catch(error => console.error('Error:', error));
         }
+
+        function submitAllForms() {
+            // タイトルと概要の更新
+            const tripEditForm = document.getElementById('tripEditForm');
+            const formData = new FormData(tripEditForm);
+
+            // 要望とコメントの更新
+            const promises = [];
+            
+            // タイトルと概要の更新
+            promises.push(
+                fetch(tripEditForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                })
+            );
+
+            // 要望の更新
+            document.querySelectorAll('[data-type="request"] textarea').forEach(textarea => {
+                const requestId = textarea.closest('form').id.match(/\d+/)[0];
+                promises.push(
+                    fetch(`/trip-requests/${requestId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ content: textarea.value })
+                    })
+                );
+            });
+
+            // コメントの更新
+            document.querySelectorAll('[data-type="comment"] input[type="text"]').forEach(input => {
+                const commentId = input.closest('form').id.match(/\d+/)[0];
+                promises.push(
+                    fetch(`/request-comments/${commentId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ content: input.value })
+                    })
+                );
+            });
+
+            Promise.all(promises)
+                .then(() => {
+                    showToast('更新しました', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                })
+                .catch(error => {
+                    showToast('更新に失敗しました', 'error');
+                });
+        }
+
+        // 編集モードの切り替え
+        function switchMode(mode) {
+            console.log('Switching to mode:', mode);
+            
+            const viewTab = document.getElementById('viewTab');
+            const editTab = document.getElementById('editTab');
+            
+            if (mode === 'edit') {
+                console.log('Enabling edit mode');
+                document.body.classList.add('edit-mode');
+                editTab.classList.add('active');
+                viewTab.classList.remove('active');
+                
+                // 編集可能な要素にイベントリスナーを追加
+                document.querySelectorAll('[data-editable]').forEach(el => {
+                    const contentDiv = el.querySelector('div[id^="request-content-"], div[id^="comment-content-"]');
+                    if (contentDiv) {
+                        contentDiv.style.cursor = 'pointer';
+                        contentDiv.onclick = function() {
+                            const type = el.dataset.type;
+                            const id = el.dataset.id;
+                            startEdit(type, id);
+                        };
+                    }
+                });
+            } else {
+                console.log('Disabling edit mode');
+                document.body.classList.remove('edit-mode');
+                viewTab.classList.add('active');
+                editTab.classList.remove('active');
+                
+                // イベントリスナーを削除し、すべての要素を表示モードに戻す
+                document.querySelectorAll('[data-editable]').forEach(el => {
+                    const contentDiv = el.querySelector('div[id^="request-content-"], div[id^="comment-content-"]');
+                    const formEl = el.querySelector('form');
+                    if (contentDiv) {
+                        contentDiv.style.cursor = 'default';
+                        contentDiv.onclick = null;
+                        contentDiv.style.display = 'block';
+                    }
+                    if (formEl) {
+                        formEl.style.display = 'none';
+                    }
+                });
+            }
+        }
+    
+        // 編集の開始
+        function startEdit(type, id) {
+            if (!document.body.classList.contains('edit-mode')) return;
+            
+            const contentDiv = document.getElementById(`${type}-content-${id}`);
+            const formEl = document.getElementById(`${type}-edit-form-${id}`);
+            
+            if (!contentDiv || !formEl) return;
+
+            contentDiv.style.display = 'none';
+            formEl.style.display = 'block';
+            
+            const input = formEl.querySelector('textarea, input[type="text"]');
+            if (input) {
+                input.focus();
+                input.selectionStart = input.selectionEnd = input.value.length;
+            }
+        }
+    
+        // フォームのイベントリスナー設定
+        function setupFormListeners(form, type, id) {
+            // キャンセルボタンのイベント
+            const cancelBtn = form.querySelector('button[type="button"]');
+            if (cancelBtn) {
+                cancelBtn.onclick = () => cancelEdit(type, id);
+            }
+    
+            // フォームの送信イベント
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                submitEdit(form, type, id);
+            };
+        }
+    
+        // 編集のキャンセル
+        function cancelEdit(type, id) {
+            const contentDiv = document.getElementById(`${type}-content-${id}`);
+            const formEl = document.getElementById(`${type}-edit-form-${id}`);
+            
+            if (contentDiv && formEl) {
+                contentDiv.style.display = 'block';
+                formEl.style.display = 'none';
+            }
+        }
+    
+        // 編集内容の送信
+        function submitEdit(form, type, id) {
+            const formData = new FormData(form);
+            formData.append('_method', 'PUT');
+    
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const contentEl = document.getElementById(`${type}-content-${id}`);
+                    if (contentEl) {
+                        contentEl.textContent = formData.get('content');
+                        cancelEdit(type, id);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('更新に失敗しました');
+            });
+        }
+    
+        // 要望の削除
+        function deleteRequest(requestId) {
+            createDeleteConfirmation('request', requestId);
+        }
+
+        // コメントの削除
+        function deleteComment(commentId) {
+            createDeleteConfirmation('comment', commentId);
+        }
+
+        // 実際の削除処理を行う関数
+        function confirmDelete(type, id) {
+            console.log('Confirming delete:', type, id);
+            const url = type === 'comment' ? `/request-comments/${id}` : `/trip-requests/${id}`;
+            console.log('Delete URL:', url);
+
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('削除に失敗しました');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    if (type === 'comment') {
+                        const commentElement = document.querySelector(`[data-type="comment"][data-id="${id}"]`);
+                        if (commentElement) {
+                            commentElement.closest('.group').remove();
+                        }
+                    } else {
+                        const requestElement = document.querySelector(`[data-type="request"][data-id="${id}"]`);
+                        if (requestElement) {
+                            requestElement.closest('.border-b').remove();
+                        }
+                    }
+                    showToast('削除しました', 'success');
+                } else {
+                    throw new Error(data.message || '削除に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('Delete error:', error);
+                showToast(error.message || '削除に失敗しました', 'error');
+            })
+            .finally(() => {
+                document.querySelector('.confirm-toast')?.remove();
+            });
+        }
+
+        // 結果表示用のトースト
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full text-sm ${
+                type === 'success' ? 'bg-sky-500/90' : 'bg-rose-500/90'
+            } text-white shadow-sm backdrop-blur-sm z-50`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    
+        // 初期設定
+        document.addEventListener('DOMContentLoaded', () => {
+            switchMode('view');
+        });
     </script>
 </body>
 </html>

@@ -6,6 +6,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\CandidateDateController;
 use App\Http\Controllers\TripRequestController;
 use App\Http\Controllers\Auth\LoginController;  // 追加
+use App\Http\Controllers\RequestCommentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -63,7 +64,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/trips/{trip}/request', [TripController::class, 'storeRequest'])
         ->name('trips.request');
     Route::put('/trip-requests/{tripRequest}', [TripRequestController::class, 'update'])->name('requests.update');
-    Route::delete('/trip-requests/{tripRequest}', [TripRequestController::class, 'destroy'])->name('requests.destroy');
+    Route::delete('/trip-requests/{request}', [TripRequestController::class, 'destroy'])
+    ->name('requests.destroy');
     Route::post('/requests/{request}/comment', [TripRequestController::class, 'storeComment'])
         ->name('requests.comment');
     Route::post('/requests/{request}/like', [TripRequestController::class, 'toggleLike'])
@@ -71,7 +73,8 @@ Route::middleware(['auth'])->group(function () {
 
     // コメントの更新と削除
     Route::put('/request-comments/{comment}', [RequestCommentController::class, 'update'])->name('request.comments.update');
-    Route::delete('/request-comments/{comment}', [RequestCommentController::class, 'destroy'])->name('request.comments.destroy');
+    Route::delete('/request-comments/{comment}', [RequestCommentController::class, 'destroy'])
+        ->name('request.comments.destroy');
 });
 
 // 候補日関連のAPI

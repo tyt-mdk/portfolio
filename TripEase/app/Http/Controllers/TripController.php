@@ -140,8 +140,10 @@ class TripController extends Controller
     {
         // 権限チェック
         if (!$trip->users->contains(auth()->id()) && $trip->creator_id !== auth()->id()) {
-            return redirect()->route('trips.index')
-                ->with('error', 'この旅行計画を編集する権限がありません。');
+            return response()->json([
+                'success' => false,
+                'message' => 'この旅行計画を編集する権限がありません。'
+            ], 403);
         }
     
         // バリデーション
@@ -153,9 +155,10 @@ class TripController extends Controller
         // データ更新
         $trip->update($validated);
     
-        // リダイレクト（同じページに戻る）
-        return redirect()->route('trips.show', $trip)
-            ->with('success', '旅行計画が更新されました。');
+        return response()->json([
+            'success' => true,
+            'message' => '更新しました'
+        ]);
     }
 
     /**

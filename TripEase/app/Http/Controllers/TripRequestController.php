@@ -64,14 +64,35 @@ class TripRequestController extends Controller
         ]);
     }
 
-    public function destroy(TripRequest $tripRequest)
+    public function destroy(TripRequest $request)
     {
-        // 権限チェック
-        if ($tripRequest->user_id !== auth()->id()) {
-            return back()->with('error', '他のユーザーの要望は削除できません。');
+        try {
+            // 権限チェック
+            if ($request->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '他のユーザーの要望は削除できません。'
+                ], 403);
+            }
+    
+            // 削除実行
+            $request->delete();
+    
+            return response()->json([
+                'success' => true,
+                'message' => '要望を削除しました'
+            ]);
+    
+        } catch (\Exception $e) {
+            \Log::error('Request deletion failed:', [
+                'request_id' => $request->id,
+                'error' => $e->getMessage()
+            ]);
+    
+            return response()->json([
+                'success' => false,
+                'message' => '要望の削除に失敗しました'
+            ], 500);
         }
-
-        $tripRequest->delete();
-        return back()->with('success', '要望を削除しました。');
     }
 }
