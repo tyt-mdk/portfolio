@@ -60,29 +60,29 @@
 <body class="flex flex-col min-h-[100vh] text-[0.65rem] bg-slate-100 text-slate-800 font-notosans">
     <header>
     </header>
-    <main class="flex-1 pb-20">
-        <h1 class="text-2xl text-slate-950 mt-6 ml-6">{{ $trip->title }}の日程調整</h1>
+    <main class="flex-1 pb-20 md:pb-10">
+        <h1 class="text-xl md:text-2xl text-slate-950 mt-4 md:mt-6 mx-4 md:mx-6">{{ $trip->title }}の日程調整</h1>
 
         <!-- カレンダー -->
-        <div class="rounded shadow-md bg-slate-50 grid grid-flow-col justify-stretch p-4 my-10 mx-5">
-            <div id="calendar"></div>
+        <div class="rounded shadow-md bg-slate-50 p-3 md:p-4 my-6 md:my-10 mx-4 md:mx-5">
+            <div id="calendar" class="text-sm md:text-base"></div>
         </div>
 
-        <div class="max-w-[400px] mx-auto font-sans">
-            <!-- 候補日追加 -->
+        <!-- 候補日追加フォーム -->
+        <div class="max-w-[400px] mx-auto px-4 md:px-0 font-sans">
             <section class="mb-5">
-                <h2 class="text-lg mb-2.5">候補日を追加</h2>
-                <form method="POST" action="{{ route('schedule.addDate', $trip->id) }}" class="flex gap-2.5">
+                <h2 class="text-base md:text-lg mb-2 md:mb-2.5">候補日を追加</h2>
+                <form method="POST" action="{{ route('schedule.addDate', $trip->id) }}" class="flex gap-2 md:gap-2.5">
                     @csrf
                     <input 
                         type="date" 
                         name="proposed_date" 
                         required 
-                        class="flex-1 px-2 py-2 border border-gray-300 rounded"
+                        class="flex-1 px-2 py-2.5 md:py-2 border border-gray-300 rounded text-sm md:text-base"
                     >
                     <button 
                         type="submit" 
-                        class="px-4 py-2 bg-sky-300 text-white rounded hover:bg-sky-400 transition-colors"
+                        class="px-4 py-2.5 md:py-2 bg-sky-300 text-white rounded hover:bg-sky-400 transition-colors text-sm md:text-base"
                     >
                         追加
                     </button>
@@ -90,19 +90,18 @@
             </section>
         </div>
     </main>
+
     <!-- フッター -->
-    <footer class="fixed bottom-0 left-0 right-0 bg-slate-50 shadow-lg">
+    <footer class="fixed md:static bottom-0 left-0 right-0 bg-slate-50 shadow-lg">
         <div class="max-w-4xl mx-auto px-4">
-            <!-- フッターの本体部分 -->
-            <div class="grid grid-cols-3 items-start h-20 text-sm pt-1">
-                <!-- 戻るボタン（左） -->
+            <div class="grid grid-cols-3 items-start h-16 md:h-20 text-sm pt-1">
+                <!-- 戻るボタン -->
                 <div class="justify-self-start">
                     <a href="{{ route('trips.each.planning', ['trip' => $trip->id]) }}" 
-                    class="flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
-                        <i class="fa-solid fa-chevron-left text-slate-600"></i>
+                       class="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
+                        <i class="fa-solid fa-chevron-left text-slate-600 text-sm md:text-base"></i>
                     </a>
                 </div>
-                <!-- 中央と右側は空 -->
                 <div></div>
                 <div></div>
             </div>
@@ -275,6 +274,12 @@
                     right: 'prev,next'
                 },
                 height: 'auto',
+                // ここにビューポートサイズに応じたフォントサイズ調整を追加
+                viewDidMount: function(view) {
+                    const isMobile = window.innerWidth < 768;
+                    view.el.style.fontSize = isMobile ? '0.875rem' : '1rem';
+                },
+                // 既存の設定を維持
                 dayCellContent: function(arg) {
                     return arg.dayNumberText.replace('日', '');
                 },
@@ -283,10 +288,8 @@
                     next: '▲'
                 },
                 buttonIcons: false,
-                // today関連の設定を無効化
                 nowIndicator: false,
                 now: null,
-                // 今日の日付の背景を無効化
                 dayMaxEvents: true,
                 dateClick: function(info) {
                     const candidateDate = candidateDates.find(date => date.date === info.dateStr);
