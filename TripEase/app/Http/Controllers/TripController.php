@@ -289,4 +289,51 @@ class TripController extends Controller
             'dateVotes' => $dateVotes ?? collect(),
         ]);
     }
+
+    /**
+     * 参加中の旅行計画一覧を表示
+     */
+    public function participating()
+    {
+        try {
+            \Log::info('Participating method called'); // デバッグ用
+            
+            // ユーザーの取得を確認
+            $user = auth()->user();
+            if (!$user) {
+                \Log::error('User not authenticated');
+                return redirect()->route('login');
+            }
+            \Log::info('User found', ['id' => $user->id]);
+    
+            // リレーションのロードを確認
+            try {
+                $user->load(['trips' => function($query) {
+                    $query->orderBy('updated_at', 'desc');
+                }]);
+                \Log::info('Trips loaded', ['count' => $user->trips->count()]);
+            } catch (\Exception $e) {
+                \Log::error('Error loading trips: ' . $e->getMessage());
+                throw $e;
+            }
+    
+            // ビューの存在確認
+            if (!view()->exists('trips.participating')) {
+                \Log::error('View trips.participating does not exist');
+                throw new \Exception('View not found');
+            }
+            
+            return view('trips.participating', compact('user'));
+        } catch (\Exception $e) {
+            \Log::error('Error in participating method: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
+            // 開発環境でのみ詳細なエラーを表示
+            if (config('app.debug')) {
+                throw $e;
+            }
+            
+            return response()->view('errors.500', [], 500);
+        }
+    }
 }

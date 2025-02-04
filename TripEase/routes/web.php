@@ -5,10 +5,11 @@ use App\Http\Controllers\TripController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\CandidateDateController;
 use App\Http\Controllers\TripRequestController;
-use App\Http\Controllers\Auth\LoginController;  // 追加
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\RequestCommentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\JoinTripController;
 
 // 認証不要のルート
 Route::get('/', function () {
@@ -48,6 +49,10 @@ Route::middleware(['auth'])->group(function () {
 
     // ユーザー関連のルート
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
+
+    // 参加中の旅行計画一覧を表示するルート（resourceの前に配置）
+    Route::get('/trips/participating', [TripController::class, 'participating'])
+        ->name('trips.participating');
     
     // 既存のルート
     Route::resource('trips', TripController::class);
@@ -75,6 +80,11 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/request-comments/{comment}', [RequestCommentController::class, 'update'])->name('request.comments.update');
     Route::delete('/request-comments/{comment}', [RequestCommentController::class, 'destroy'])
         ->name('request.comments.destroy');
+
+    // 共有リンクからの参加
+    Route::post('/trips/join', [JoinTripController::class, 'joinViaUrl'])
+        ->name('trips.join.url')
+        ->middleware('auth');
 });
 
 // 候補日関連のAPI

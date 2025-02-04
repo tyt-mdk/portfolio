@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- レスポンシブ -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://kit.fontawesome.com/ef96165231.js" crossorigin="anonymous"></script><!-- FontAwesome -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script><!-- Alpine.js -->
     <title>TripEase</title>
@@ -42,9 +43,59 @@
 
             <!-- アクションボタン群 -->
             <div class="h-30 grid grid-cols-2 gap-2 content-evenly box-border p-5 font-semibold">
-                <a href="{{ route('trips.create') }}"><p class="text-center shadow-md rounded-full box-content p-3 md:p-4 bg-sky-300 text-white text-sm md:text-base"><i class="fa-solid fa-suitcase-rolling box-content w-6"></i>旅行を新しく計画する</p></a>
-                <a href=""><p class="text-center shadow-md rounded-full box-content p-3 md:p-4 bg-slate-50 text-sm md:text-base"><i class="fa-solid fa-ticket box-content w-6"></i>URLで参加する</p></a>
-                <a href=""><p class="text-center shadow-md rounded-full box-content p-3 md:p-4 bg-slate-500 text-white text-sm md:text-base"><i class="fa-solid fa-pen-nib box-content w-6"></i>管理中の計画を編集する</p></a>
+                <!-- 旅行を新しく計画するボタン -->
+                <a href="{{ route('trips.create') }}" class="text-center shadow-md rounded-full box-content p-3 md:p-4 bg-sky-300 text-white text-sm md:text-base">
+                    <i class="fa-solid fa-suitcase-rolling box-content w-6"></i>旅行を新しく計画する
+                </a>
+                <!-- URLで参加するボタン -->
+                <div x-data="{ showJoinModal: false, joinUrl: '', message: '', isError: false, joinTrip() { if (!this.joinUrl) { this.message = 'URLを入力してください'; this.isError = true; return; } fetch('/trips/join', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }, body: JSON.stringify({ url: this.joinUrl }) }).then(response => response.json()).then(data => { this.message = data.message; this.isError = !data.success; this.joinUrl = ''; }).catch(error => { console.error('Error:', error); this.message = 'エラーが発生しました'; this.isError = true; }); } }">
+                    <p class="text-center shadow-md rounded-full box-content p-3 md:p-4 bg-slate-50 text-sm md:text-base">
+                        <a href="javascript:void(0)" @click="showJoinModal = true">
+                            <i class="fa-solid fa-ticket box-content w-6"></i>URLで参加する
+                        </a>
+                    </p>
+
+                    <!-- モーダル -->
+                    <div x-show="showJoinModal" class="fixed inset-0 z-50 flex items-center justify-center">
+                        <div class="absolute inset-0 bg-slate-900/50"></div>
+                        <div class="relative bg-slate-50 shadow-lg w-full max-w-md mx-4 rounded-lg">
+                            <div class="px-4 py-4">
+                                <!-- ×ボタン -->
+                                <div class="flex justify-end mb-2">
+                                    <button @click="showJoinModal = false" class="text-slate-400 hover:text-slate-600">
+                                        <i class="fa-solid fa-xmark text-xl"></i>
+                                    </button>
+                                </div>
+
+                                <!-- メッセージ -->
+                                <div x-show="message" 
+                                    x-transition
+                                    :class="isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'"
+                                    class="px-4 py-3 rounded mb-4">
+                                    <p x-text="message"></p>
+                                </div>
+
+                                <!-- フォーム -->
+                                <form @submit.prevent="joinTrip" class="space-y-4">
+                                    <div class="flex gap-2">
+                                        <input type="text" 
+                                            x-model="joinUrl" 
+                                            placeholder="共有URLを入力してください" 
+                                            class="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-sky-500 text-sm">
+                                        <button type="submit" 
+                                            class="px-6 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors text-sm">
+                                            参加する
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 参加中の計画を見るボタン -->
+                <a href="{{ route('trips.participating') }}" class="text-center shadow-md rounded-full box-content p-3 md:p-4 bg-slate-500 text-white text-sm md:text-base">
+                    <i class="fa-solid fa-list box-content w-6"></i>参加中の計画を見る
+                </a>
                 <a href=""><p class="text-center shadow-md rounded-full box-content p-3 md:p-4 bg-slate-50 text-sm md:text-base">コンテンツ</p></a>
             </div>
 
