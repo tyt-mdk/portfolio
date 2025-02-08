@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('trip_id');
             $table->unsignedBigInteger('date_id');
             $table->unsignedBigInteger('user_id');
-            $table->string('judgement'); // '〇', '△', '×' の値を取る
+            $table->string('judgement')->nullable(); // '〇', '△', '×' の値を取る
             $table->timestamps();
 
             $table->foreign('trip_id')->references('id')->on('trips')->onDelete('cascade');

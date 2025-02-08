@@ -14,6 +14,9 @@ class CandidateDate extends Model
         'judgement',
         'user_id'
     ];
+    protected $dates = [
+        'proposed_date'
+    ];
     public function trip()
     {
         return $this->belongsTo(Trip::class);

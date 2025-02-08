@@ -68,27 +68,6 @@
             <div id="calendar" class="text-sm md:text-base"></div>
         </div>
 
-        <!-- 候補日追加フォーム -->
-        <div class="max-w-[400px] mx-auto px-4 md:px-0 font-sans">
-            <section class="mb-5">
-                <h2 class="text-base md:text-lg mb-2 md:mb-2.5">候補日を追加</h2>
-                <form method="POST" action="{{ route('schedule.addDate', $trip->id) }}" class="flex gap-2 md:gap-2.5">
-                    @csrf
-                    <input 
-                        type="date" 
-                        name="proposed_date" 
-                        required 
-                        class="flex-1 px-2 py-2.5 md:py-2 border border-gray-300 rounded text-sm md:text-base"
-                    >
-                    <button 
-                        type="submit" 
-                        class="px-4 py-2.5 md:py-2 bg-sky-300 text-white rounded hover:bg-sky-400 transition-colors text-sm md:text-base"
-                    >
-                        追加
-                    </button>
-                </form>
-            </section>
-        </div>
     </main>
 
     <!-- フッター -->
@@ -111,6 +90,7 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
 
     <script>
+        const tripId = {{ $trip->id }};  // この行を追加
         document.addEventListener('DOMContentLoaded', function() {
             // 候補日データの初期化
             const candidateDates = [
@@ -131,21 +111,176 @@
                     'bg-white', 'rounded-lg', 'shadow-lg', 'p-6', 'z-50'
                 );
 
-                // 判定ボタンのHTML
+                // 日付をフォーマットする関数
+                const formatDate = (dateStr) => {
+                    const date = new Date(dateStr);
+                    const year = date.getFullYear();
+                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                    const day = date.getDate().toString().padStart(2, '0');
+                    return `${year}年${month}月${day}日`;
+                };
+
                 box.innerHTML = `
-                    <div class="flex gap-4 justify-center">
-                        <button type="button" data-judgement="〇" 
-                            class="px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">〇</button>
-                        <button type="button" data-judgement="△" 
-                            class="px-6 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors">△</button>
-                        <button type="button" data-judgement="×" 
-                            class="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">×</button>
-                        <button type="button" data-judgement="" 
-                            class="px-6 py-2 bg-slate-300 text-white rounded-md hover:bg-slate-400 transition-colors">クリア</button>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-sm">
+                                <span class="text-slate-600">判定を選択</span>
+                                <span class="text-slate-800 ml-2">${formatDate(candidateDate.date)}</span>
+                            </div>
+                            <button type="button" class="cancel-btn text-slate-400 hover:text-slate-600">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-4 justify-center">
+                            <button type="button" data-judgement="〇" 
+                                class="judgement-btn px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">〇</button>
+                            <button type="button" data-judgement="△" 
+                                class="judgement-btn px-6 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors">△</button>
+                            <button type="button" data-judgement="×" 
+                                class="judgement-btn px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">×</button>
+                            <button type="button" data-judgement="" 
+                                class="judgement-btn px-6 py-2 bg-slate-300 text-white rounded-md hover:bg-slate-400 transition-colors">クリア</button>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200">
+                            <button type="button" class="delete-date-btn w-full px-4 py-2 text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors">
+                                <i class="fa-regular fa-trash-can mr-2"></i>この候補日を削除
+                            </button>
+                        </div>
                     </div>
                 `;
 
-                setupJudgementBoxEvents(box, candidateDate);
+                // 判定ボタンのイベントリスナー
+                const judgementBtns = box.querySelectorAll('.judgement-btn');
+                judgementBtns.forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        try {
+                            const response = await fetch(`/set-judgement`, {  // URLを修正
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    date: candidateDate.date,
+                                    judgement: btn.dataset.judgement
+                                })
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('判定の保存に失敗しました');
+                            }
+
+                            // 成功時の処理
+                            candidateDate.judgement = btn.dataset.judgement;
+                            applyDateStyles();
+                            box.remove();
+
+                        } catch (error) {
+                            console.error('Error:', error);
+                            const messageP = box.querySelector('.text-slate-600');
+                            messageP.classList.remove('text-slate-600');
+                            messageP.classList.add('text-rose-600');
+                            messageP.textContent = error.message;
+                        }
+                    });
+                });
+
+                // キャンセルボタンのイベントリスナー
+                box.querySelector('.cancel-btn').addEventListener('click', () => {
+                    box.remove();
+                });
+
+                // 削除ボタンのイベントリスナー
+                const deleteBtn = box.querySelector('.delete-date-btn');
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation(); // イベントの伝播を停止
+
+                    // 確認用のモーダルを作成
+                    const confirmModal = document.createElement('div');
+                    confirmModal.classList.add(
+                        'fixed', 'inset-0', 'bg-black/50', 'flex', 'items-center', 'justify-center', 'z-[60]'
+                    );
+                    
+                    confirmModal.innerHTML = `
+                        <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-4 w-full">
+                            <div class="text-center">
+                                <div class="mb-4">
+                                    <i class="fa-regular fa-trash-can text-2xl text-rose-500"></i>
+                                </div>
+                                <h3 class="text-lg font-medium text-slate-900 mb-2">候補日の削除</h3>
+                                <p class="text-slate-600 text-sm mb-6">
+                                    この候補日を削除します。<br>
+                                    この操作は取り消せません。
+                                </p>
+                                <div class="flex justify-center gap-3">
+                                    <button type="button" class="cancel-btn px-6 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-full">
+                                        キャンセル
+                                    </button>
+                                    <button type="button" class="confirm-btn px-6 py-2 text-sm text-white bg-rose-600 hover:bg-rose-700 rounded-full">
+                                        削除する
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.appendChild(confirmModal);
+
+                    // モーダルのイベントリスナー
+                    confirmModal.querySelector('.cancel-btn').addEventListener('click', () => {
+                        confirmModal.remove();
+                    });
+
+                    confirmModal.querySelector('.confirm-btn').addEventListener('click', async () => {
+                        try {
+                            const response = await fetch(`/trips/{{ $trip->id }}/candidate-dates/${candidateDate.id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Accept': 'application/json'
+                                }
+                            });
+
+                            if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(errorData.message || '削除に失敗しました');
+                            }
+
+                            // 成功時の処理
+                            const index = candidateDates.findIndex(d => d.id === candidateDate.id);
+                            if (index !== -1) {
+                                candidateDates.splice(index, 1);
+                            }
+
+                            // スタイルを再適用
+                            applyDateStyles();
+                            box.remove();
+                            confirmModal.remove();
+
+                        } catch (error) {
+                            console.error('Error:', error);
+                            // エラーメッセージをモーダル内に表示
+                            const errorDiv = confirmModal.querySelector('.text-slate-600');
+                            errorDiv.classList.remove('text-slate-600');
+                            errorDiv.classList.add('text-rose-600');
+                            errorDiv.innerHTML = error.message || '削除に失敗しました';
+                            
+                            // 削除ボタンを無効化
+                            const confirmBtn = confirmModal.querySelector('.confirm-btn');
+                            confirmBtn.disabled = true;
+                            confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        }
+                    });
+
+                    // モーダルの外側をクリックで閉じる
+                    confirmModal.addEventListener('click', (e) => {
+                        if (e.target === confirmModal) {
+                            confirmModal.remove();
+                        }
+                    });
+                });
+
                 return box;
             }
 
@@ -170,6 +305,14 @@
             // 判定クリック時の処理
             async function handleJudgementClick(button, candidateDate, box) {
                 try {
+                    // クリアボタンの場合は特別な処理
+                    if (button.dataset.judgement === '') {
+                        updateCandidateDate(candidateDate, '');
+                        box.remove();
+                        return;
+                    }
+
+                    // 通常の判定（〇、△、×）の場合は既存の処理
                     const response = await fetch(`/trips/{{ $trip->id }}/vote-date`, {
                         method: 'POST',
                         headers: {
@@ -284,12 +427,107 @@
                 dayMaxEvents: true,
                 dateClick: function(info) {
                     const candidateDate = candidateDates.find(date => date.date === info.dateStr);
+                    
                     if (candidateDate) {
-                        document.querySelector('.judgement-box')?.remove();
-                        document.body.appendChild(createJudgementBox(candidateDate));
+                        // 既存の候補日の場合は判定ボックスを表示
+                        const existingBox = document.querySelector('.judgement-box');
+                        if (existingBox) {
+                            existingBox.remove();
+                        }
+                        const box = createJudgementBox(candidateDate);
+                        document.body.appendChild(box);
+                    } else {
+                        // 新規の日付の場合は候補日追加の確認モーダルを表示
+                        const confirmModal = document.createElement('div');
+                        confirmModal.classList.add(
+                            'fixed', 'inset-0', 'bg-black/50', 'flex', 'items-center', 'justify-center', 'z-[60]'
+                        );
+                        
+                        confirmModal.innerHTML = `
+                            <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-4 w-full">
+                                <div class="text-center">
+                                    <div class="mb-4">
+                                        <i class="fa-regular fa-calendar-plus text-2xl text-blue-500"></i>
+                                    </div>
+                                    <h3 class="text-lg font-medium text-slate-900 mb-2">候補日の追加</h3>
+                                    <p class="text-slate-600 text-sm mb-6">
+                                        ${info.dateStr} を候補日として追加しますか？
+                                    </p>
+                                    <div class="flex justify-center gap-3">
+                                        <button type="button" class="cancel-btn px-6 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-full">
+                                            キャンセル
+                                        </button>
+                                        <button type="button" class="confirm-btn px-6 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-full">
+                                            追加する
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        document.body.appendChild(confirmModal);
+
+                        // モーダルのイベントリスナー
+                        confirmModal.querySelector('.cancel-btn').addEventListener('click', () => {
+                            confirmModal.remove();
+                        });
+
+                        // モーダル内のエラー表示部分
+                        confirmModal.querySelector('.confirm-btn').addEventListener('click', async () => {
+                            try {
+                                const response = await fetch(`/trips/{{ $trip->id }}/candidate-dates`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        date: info.dateStr
+                                    })
+                                });
+
+                                if (!response.ok) {
+                                    const errorData = await response.json();
+                                    throw new Error(errorData.message || '候補日の追加に失敗しました');
+                                }
+
+                                const data = await response.json();
+                                
+                                // 新しい候補日を配列に追加
+                                candidateDates.push({
+                                    date: info.dateStr,
+                                    id: data.id,
+                                    judgement: ''
+                                });
+
+                                // スタイルを再適用
+                                applyDateStyles();
+                                confirmModal.remove();
+
+                            } catch (error) {
+                                console.error('Error:', error);
+                                // エラーメッセージをモーダル内に表示
+                                const messageP = confirmModal.querySelector('.text-slate-600');
+                                messageP.classList.remove('text-slate-600');
+                                messageP.classList.add('text-rose-600');
+                                messageP.textContent = error.message || '候補日の追加に失敗しました';
+                                
+                                // 追加ボタンを無効化
+                                const confirmBtn = confirmModal.querySelector('.confirm-btn');
+                                confirmBtn.disabled = true;
+                                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                            }
+                        });
+
+                        // モーダルの外側をクリックで閉じる
+                        confirmModal.addEventListener('click', (e) => {
+                            if (e.target === confirmModal) {
+                                confirmModal.remove();
+                            }
+                        });
                     }
-                },
-                datesSet: applyDateStyles
+                }
             });
 
             // カレンダーの描画

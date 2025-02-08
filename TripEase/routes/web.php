@@ -88,11 +88,15 @@ Route::middleware(['auth'])->group(function () {
 
     // 日程の更新
     Route::patch('/trips/{trip}/update-dates', [TripController::class, 'updateDates'])->name('trips.update-dates');
-});
 
-// 候補日関連のAPI
-Route::get('/get-candidate-dates', [CandidateDateController::class, 'getCandidateDates']);
-Route::post('/set-judgement', [CandidateDateController::class, 'setJudgement']);
+    // 候補日関連のAPI
+    Route::get('/get-candidate-dates', [CandidateDateController::class, 'getCandidateDates']);
+    Route::post('/set-judgement', [CandidateDateController::class, 'setJudgement']);
+    Route::delete('/trips/{trip}/candidate-dates/{candidateDate}', [CandidateDateController::class, 'destroy'])
+        ->name('candidate-dates.destroy');
+    Route::post('/trips/{trip}/candidate-dates', [CandidateDateController::class, 'store'])
+        ->name('candidate-dates.store');
+});
 
 // ログアウト
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
