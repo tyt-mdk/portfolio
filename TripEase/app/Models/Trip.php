@@ -17,7 +17,14 @@ class Trip extends Model
         'creator_id',
         'share_token',
         'start_date',
-        'end_date'
+        'end_date',
+        'confirmed_start_date',
+        'confirmed_end_date',
+    ];
+
+    protected $casts = [
+        'confirmed_start_date' => 'date',
+        'confirmed_end_date' => 'date',
     ];
 
     /**

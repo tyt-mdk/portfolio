@@ -85,6 +85,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/trips/join', [JoinTripController::class, 'joinViaUrl'])
         ->name('trips.join.url')
         ->middleware('auth');
+
+    // 日程の更新
+    Route::patch('/trips/{trip}/update-dates', [TripController::class, 'updateDates'])->name('trips.update-dates');
 });
 
 // 候補日関連のAPI

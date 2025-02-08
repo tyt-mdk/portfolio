@@ -112,6 +112,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // 候補日データの初期化
             const candidateDates = [
                 @foreach ($candidateDates as $date)
                     {
@@ -122,12 +123,7 @@
                 @endforeach
             ];
 
-            // デバッグ用の詳細なログ出力
-            candidateDates.forEach(date => {
-                console.log('Date:', date.date, 'ID:', date.id, 'Judgement:', date.judgement);
-            });
-
-                // createJudgementBox関数を追加
+            // 判定ボックスの作成
             function createJudgementBox(candidateDate) {
                 const box = document.createElement('div');
                 box.classList.add('judgement-box', 
@@ -135,6 +131,7 @@
                     'bg-white', 'rounded-lg', 'shadow-lg', 'p-6', 'z-50'
                 );
 
+                // 判定ボタンのHTML
                 box.innerHTML = `
                     <div class="flex gap-4 justify-center">
                         <button type="button" data-judgement="〇" 
@@ -143,10 +140,18 @@
                             class="px-6 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors">△</button>
                         <button type="button" data-judgement="×" 
                             class="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">×</button>
+                        <button type="button" data-judgement="" 
+                            class="px-6 py-2 bg-slate-300 text-white rounded-md hover:bg-slate-400 transition-colors">クリア</button>
                     </div>
                 `;
 
-                // クリック外での閉じる処理を追加
+                setupJudgementBoxEvents(box, candidateDate);
+                return box;
+            }
+
+            // 判定ボックスのイベント設定
+            function setupJudgementBoxEvents(box, candidateDate) {
+                // クリック外での閉じる処理
                 setTimeout(() => {
                     document.addEventListener('click', function closeBox(e) {
                         if (!box.contains(e.target)) {
@@ -156,116 +161,107 @@
                     });
                 }, 0);
 
-                // ボタンクリックのイベントリスナーを追加
+                // ボタンクリックの処理
                 box.querySelectorAll('button').forEach(button => {
-                    button.addEventListener('click', async () => {
-                        try {
-                            const response = await fetch(`/trips/{{ $trip->id }}/vote-date`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                    'Accept': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    date_id: candidateDate.id,
-                                    judgement: button.dataset.judgement,
-                                    trip_id: {{ $trip->id }}
-                                })
-                            });
-
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-
-                            const data = await response.json();
-                            
-                            // candidateDatesの該当データを更新
-                            const targetDate = candidateDates.find(d => d.id === candidateDate.id);
-                            if (targetDate) {
-                                targetDate.judgement = button.dataset.judgement;
-                            }
-
-                            // スタイルを再適用
-                            applyDateStyles();
-                            box.remove();
-
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('判定の保存に失敗しました。');
-                        }
-                    });
+                    button.addEventListener('click', () => handleJudgementClick(button, candidateDate, box));
                 });
-
-                return box;
             }
 
-            function applyDateStyles() {
-                // デバッグ用のログ出力
-                console.log('candidateDates:', candidateDates);
+            // 判定クリック時の処理
+            async function handleJudgementClick(button, candidateDate, box) {
+                try {
+                    const response = await fetch(`/trips/{{ $trip->id }}/vote-date`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            date_id: candidateDate.id,
+                            judgement: button.dataset.judgement,
+                            trip_id: {{ $trip->id }}
+                        })
+                    });
 
+                    if (!response.ok) throw new Error('Network response was not ok');
+
+                    const data = await response.json();
+                    updateCandidateDate(candidateDate, button.dataset.judgement);
+                    box.remove();
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('判定の保存に失敗しました。');
+                }
+            }
+
+            // 候補日データの更新
+            function updateCandidateDate(candidateDate, judgement) {
+                const targetDate = candidateDates.find(d => d.id === candidateDate.id);
+                if (targetDate) {
+                    targetDate.judgement = judgement;
+                    applyDateStyles();
+                }
+            }
+
+            // 日付スタイルの適用
+            function applyDateStyles() {
                 // 既存のスタイルをクリア
-                document.querySelectorAll('.date-bg').forEach(el => {
-                    el.remove();
-                });
+                document.querySelectorAll('.date-bg').forEach(el => el.remove());
 
                 // カレンダーの全セルに対して処理
                 document.querySelectorAll('.fc-daygrid-day').forEach(el => {
                     const cellDate = el.getAttribute('data-date');
-                    
-                    // 候補日のスタイリング
                     const candidateDate = candidateDates.find(date => date.date === cellDate);
+                    
                     if (candidateDate) {
-                        const mark = document.createElement('div');
-                        mark.className = 'date-bg absolute inset-0 flex items-center justify-center pointer-events-none';
-                        
-                        // デバッグ用のログ出力
-                        console.log('Found date:', cellDate, 'Judgement:', candidateDate.judgement);
-
-                        if (!candidateDate.judgement || candidateDate.judgement === '') {
-                            // 未判定の候補日は薄い青の背景
-                            mark.style.backgroundColor = 'rgb(219 234 254 / 0.5)';  // bg-blue-100/50
-                        } else {
-                            // 判定に応じたスタイル
-                            switch (candidateDate.judgement) {
-                                case '〇':
-                                    mark.innerHTML = `
-                                        <div class="w-8 h-8 border-2 border-emerald-300/70 rounded-full"></div>
-                                    `;
-                                    break;
-                                case '△':
-                                    mark.innerHTML = `
-                                        <div class="w-8 h-8 flex items-center justify-center">
-                                            <div class="w-6 h-6 bg-orange-200/50"
-                                                style="clip-path: polygon(50% 0%, 100% 100%, 0% 100%);">
-                                            </div>
-                                        </div>
-                                    `;
-                                    break;
-                                case '×':
-                                    mark.innerHTML = `
-                                        <div class="w-8 h-8 flex items-center justify-center">
-                                            <div class="relative w-6 h-6">
-                                                <div class="absolute inset-0 flex items-center justify-center">
-                                                    <div class="w-full h-[2px] bg-rose-300/50 transform rotate-45"></div>
-                                                </div>
-                                                <div class="absolute inset-0 flex items-center justify-center">
-                                                    <div class="w-full h-[2px] bg-rose-300/50 transform -rotate-45"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                    break;
-                            }
-                        }
-                        
+                        const mark = createDateMark(candidateDate.judgement);
                         el.appendChild(mark);
                     }
                 });
             }
 
-            var calendarEl = document.getElementById('calendar');
-            var calendar = new FullCalendar.Calendar(calendarEl, {
+            // 日付マークの作成
+            function createDateMark(judgement) {
+                const mark = document.createElement('div');
+                mark.className = 'date-bg absolute inset-0 flex items-center justify-center pointer-events-none';
+
+                if (!judgement || judgement === '') {
+                    mark.style.backgroundColor = 'rgb(219 234 254 / 0.5)';  // bg-blue-100/50
+                    return mark;
+                }
+
+                mark.innerHTML = getJudgementMarkHTML(judgement);
+                return mark;
+            }
+
+            // 判定マークのHTML取得
+            function getJudgementMarkHTML(judgement) {
+                const markStyles = {
+                    '〇': `<div class="w-8 h-8 border-2 border-emerald-300/70 rounded-full"></div>`,
+                    '△': `<div class="w-8 h-8 flex items-center justify-center">
+                            <div class="w-6 h-6 bg-orange-200/50"
+                                style="clip-path: polygon(50% 0%, 100% 100%, 0% 100%);">
+                            </div>
+                        </div>`,
+                    '×': `<div class="w-8 h-8 flex items-center justify-center">
+                            <div class="relative w-6 h-6">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-full h-[2px] bg-rose-300/50 transform rotate-45"></div>
+                                </div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-full h-[2px] bg-rose-300/50 transform -rotate-45"></div>
+                                </div>
+                            </div>
+                        </div>`
+                };
+                return markStyles[judgement] || '';
+            }
+
+            // カレンダーの初期化と設定
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'ja',
                 headerToolbar: {
@@ -274,15 +270,10 @@
                     right: 'prev,next'
                 },
                 height: 'auto',
-                // ここにビューポートサイズに応じたフォントサイズ調整を追加
                 viewDidMount: function(view) {
-                    const isMobile = window.innerWidth < 768;
-                    view.el.style.fontSize = isMobile ? '0.875rem' : '1rem';
+                    view.el.style.fontSize = window.innerWidth < 768 ? '0.875rem' : '1rem';
                 },
-                // 既存の設定を維持
-                dayCellContent: function(arg) {
-                    return arg.dayNumberText.replace('日', '');
-                },
+                dayCellContent: arg => arg.dayNumberText.replace('日', ''),
                 buttonText: {
                     prev: '▼',
                     next: '▲'
@@ -294,22 +285,16 @@
                 dateClick: function(info) {
                     const candidateDate = candidateDates.find(date => date.date === info.dateStr);
                     if (candidateDate) {
-                        const existingBox = document.querySelector('.judgement-box');
-                        if (existingBox) {
-                            existingBox.remove();
-                        }
-                        const box = createJudgementBox(candidateDate);
-                        document.body.appendChild(box);
+                        document.querySelector('.judgement-box')?.remove();
+                        document.body.appendChild(createJudgementBox(candidateDate));
                     }
                 },
-                datesSet: function() {
-                    applyDateStyles();
-                }
+                datesSet: applyDateStyles
             });
 
+            // カレンダーの描画
             calendar.render();
-            setTimeout(applyDateStyles, 100);  // タイミングを少し遅らせる
-            applyDateStyles();
+            setTimeout(applyDateStyles, 100);
         });
     </script>
 

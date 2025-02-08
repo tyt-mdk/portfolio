@@ -213,6 +213,94 @@
             </template>
         </div>
 
+        <!-- 確定した日程の表示セクション -->
+        <section class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+            <div class="p-4 bg-slate-50 border-b border-slate-200">
+                <h3 class="font-medium text-slate-800">確定した日程</h3>
+            </div>
+
+            <!-- 確定日程の表示（常に表示） -->
+            <div id="confirmedDateDisplay" class="p-4">
+                <div class="flex items-center gap-2 text-slate-700">
+                    <i class="fa-regular fa-calendar text-sky-500"></i>
+                    <span class="text-base" id="dateDisplayText">
+                        @if($trip->confirmed_start_date && $trip->confirmed_end_date)
+                            @php
+                                $startDate = \Carbon\Carbon::parse($trip->confirmed_start_date);
+                                $endDate = \Carbon\Carbon::parse($trip->confirmed_end_date);
+                                $isSameDay = $startDate->isSameDay($endDate);
+                            @endphp
+                            
+                            {{ $startDate->format('Y年n月j日') }}
+                            @if($isSameDay)
+                                <span class="ml-2 text-sm text-slate-500">(日帰り)</span>
+                            @else
+                                <span class="mx-2">～</span>
+                                {{ $endDate->format('Y年n月j日') }}
+                                <span class="ml-2 text-sm text-slate-500">
+                                    ({{ $startDate->diffInDays($endDate) }}泊
+                                    {{ $startDate->diffInDays($endDate) + 1 }}日)
+                                </span>
+                            @endif
+                        @else
+                            <span class="text-slate-500">
+                                <i class="fa-regular fa-calendar-xmark mr-2"></i>
+                                日程はまだ確定していません
+                            </span>
+                        @endif
+                    </span>
+                </div>
+            </div>
+
+            <!-- 編集モードの場合のみ表示 -->
+            <!-- 編集フォーム -->
+            <form id="confirmedDateForm" action="{{ route('trips.update-dates', ['trip' => $trip->id]) }}" 
+                method="POST" class="p-4 space-y-4 border-t border-slate-200 bg-slate-50 edit-mode-only hidden">
+                @csrf
+                @method('PATCH')
+                
+                <!-- 日帰り旅行かどうかの選択 -->
+                <div class="mb-4">
+                    <label class="inline-flex items-center text-sm text-slate-700">
+                        <input type="checkbox" name="isDayTrip" id="isDayTrip" class="form-checkbox text-sky-500" 
+                            onchange="toggleDateInputs(this.checked)"
+                            {{ $trip->confirmed_start_date === $trip->confirmed_end_date ? 'checked' : '' }}>
+                        <span class="ml-2">日帰り旅行</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block">
+                            <span class="text-sm font-medium text-slate-700" id="dateLabel">
+                                {{ $trip->confirmed_start_date === $trip->confirmed_end_date ? '旅行日' : '開始日' }}
+                            </span>
+                            <input type="date" name="confirmed_start_date" id="startDate"
+                                class="mt-1 w-full rounded shadow-sm border-slate-200 focus:border-sky-500 focus:ring focus:ring-sky-200 focus:ring-opacity-50"
+                                value="{{ $trip->confirmed_start_date }}"
+                                onchange="updateDateDisplay()">
+                        </label>
+                    </div>
+                    <div id="endDateContainer">
+                        <label class="block">
+                            <span class="text-sm font-medium text-slate-700">終了日</span>
+                            <input type="date" name="confirmed_end_date" id="endDate"
+                                class="mt-1 w-full rounded shadow-sm border-slate-200 focus:border-sky-500 focus:ring focus:ring-sky-200 focus:ring-opacity-50"
+                                value="{{ $trip->confirmed_end_date }}"
+                                onchange="updateDateDisplay()">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="submit" id="submitButton"
+                            class="px-4 py-2 text-sm bg-sky-500 text-white rounded shadow-sm hover:bg-sky-600 transition-colors">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <!-- 候補日一覧テーブル -->
         <section class="bg-white rounded-lg shadow-sm overflow-hidden">
             @php
@@ -536,7 +624,7 @@
             <div class="grid grid-cols-3 items-start h-20 text-sm pt-1">
                 <!-- 戻るボタン（左） -->
                 <div class="justify-self-start">
-                    <a href="{{ route('dashboard') }}" class="flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
+                    <a href="{{ route('trips.participating') }}" class="flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
                         <i class="fa-solid fa-chevron-left text-slate-600"></i>
                     </a>
                 </div>
@@ -557,6 +645,129 @@
     </footer>
 
     <script>
+        // 日付フォーマットを修正する関数を追加
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            return dateString.split(' ')[0]; // "yyyy-MM-dd" 形式に変換
+        }
+
+        function updateDateDisplay() {
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            const isDayTrip = document.getElementById('isDayTrip')?.checked;
+            const displayElement = document.getElementById('dateDisplayText');
+
+            if (!startDate || !displayElement) {
+                return;
+            }
+
+            if (!startDate.value || (!isDayTrip && !endDate.value)) {
+                displayElement.innerHTML = '<span class="text-slate-500"><i class="fa-regular fa-calendar-xmark mr-2"></i>日程はまだ確定していません</span>';
+                return;
+            }
+
+            const start = new Date(startDate.value);
+            const end = new Date(isDayTrip ? startDate.value : endDate.value);
+            
+            const formatDate = (date) => {
+                return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+            };
+
+            if (isDayTrip || startDate.value === endDate.value) {
+                displayElement.innerHTML = `${formatDate(start)} <span class="ml-2 text-sm text-slate-500">(日帰り)</span>`;
+            } else {
+                const diffDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+                displayElement.innerHTML = `${formatDate(start)} <span class="mx-2">～</span> ${formatDate(end)} <span class="ml-2 text-sm text-slate-500">(${diffDays}泊${diffDays + 1}日)</span>`;
+            }
+        }
+
+        function toggleDateInputs(isDayTrip) {
+            const endDateContainer = document.getElementById('endDateContainer');
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            const dateLabel = document.getElementById('dateLabel');
+
+            if (isDayTrip) {
+                endDateContainer.classList.add('hidden');
+                dateLabel.textContent = '旅行日';
+                if (startDate.value) {
+                    endDate.value = startDate.value;
+                }
+            } else {
+                endDateContainer.classList.remove('hidden');
+                dateLabel.textContent = '開始日';
+            }
+            
+            clearError(); // エラーメッセージをクリア
+            validateDates();
+            updateDateDisplay();
+        }
+
+        function validateDates() {
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            const submitButton = document.getElementById('submitButton');
+            const isDayTrip = document.getElementById('isDayTrip')?.checked;
+            
+            if (!startDate || !endDate || !submitButton) {
+                return;
+            }
+
+            submitButton.disabled = false;
+
+            // 開始日が未入力の場合
+            if (!startDate.value) {
+                showError('開始日を入力してください');
+                submitButton.disabled = true;
+                return;
+            }
+
+            // 日帰り旅行でない場合の終了日チェック
+            if (!isDayTrip) {
+                if (!endDate.value) {
+                    showError('終了日を入力してください');
+                    submitButton.disabled = true;
+                    return;
+                }
+
+                // 開始日より終了日が前の場合
+                if (new Date(startDate.value) > new Date(endDate.value)) {
+                    showError('終了日は開始日より後の日付を選択してください');
+                    submitButton.disabled = true;
+                    return;
+                }
+            }
+
+            // エラーメッセージをクリア
+            clearError();
+            updateDateDisplay();
+        }
+
+        // エラーメッセージを表示する関数
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'dateError';
+            errorDiv.className = 'text-rose-500 text-sm mt-2';
+            errorDiv.textContent = message;
+
+            // 既存のエラーメッセージがあれば削除
+            clearError();
+
+            // フォームの最後にエラーメッセージを追加
+            const form = document.getElementById('confirmedDateForm');
+            if (form) {
+                form.querySelector('.grid').appendChild(errorDiv);
+            }
+        }
+
+        // エラーメッセージをクリアする関数
+        function clearError() {
+            const existingError = document.getElementById('dateError');
+            if (existingError) {
+                existingError.remove();
+            }
+        }
+
         function showCommentForm(requestId) {
             const section = document.getElementById(`comments-section-${requestId}`);
             const form = document.getElementById(`comment-add-form-${requestId}`);
@@ -790,17 +1001,30 @@
 
         // 編集モードの切り替え
         function switchMode(mode) {
-            console.log('Switching to mode:', mode);
-            
             const viewTab = document.getElementById('viewTab');
             const editTab = document.getElementById('editTab');
-            const requestAddContainer = document.getElementById('request-add-placeholder').closest('.edit-mode-only');
+            const requestAddContainer = document.getElementById('request-add-placeholder')?.closest('.edit-mode-only');
             
+            if (!viewTab || !editTab) return;
+
             if (mode === 'edit') {
-                console.log('Enabling edit mode');
                 document.body.classList.add('edit-mode');
                 editTab.classList.add('active');
                 viewTab.classList.remove('active');
+                
+                // validateDatesを呼び出す前に要素の存在確認
+                // 日付フォームの初期設定
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const isDayTripCheckbox = document.getElementById('isDayTrip');
+
+                if (startDate && endDate && isDayTripCheckbox) {
+                    // 開始日と終了日が同じ場合は日帰り旅行にチェック
+                    const isSameDay = startDate.value === endDate.value;
+                    isDayTripCheckbox.checked = isSameDay;
+                    toggleDateInputs(isSameDay);
+                    validateDates();
+                }
                 
                 // 要望追加フォームを表示
                 if (requestAddContainer) {
@@ -824,15 +1048,18 @@
                     el.style.display = 'block';
                 });
             } else {
-                console.log('Disabling edit mode');
                 document.body.classList.remove('edit-mode');
                 viewTab.classList.add('active');
                 editTab.classList.remove('active');
                 
+                // 日程フォームを非表示
+                if (confirmedDateForm) {
+                    confirmedDateForm.classList.add('hidden');
+                }
+                
                 // 要望追加フォームを非表示にし、リセット
                 if (requestAddContainer) {
                     requestAddContainer.style.display = 'none';
-                    cancelAddRequest(); // フォームをリセット
                 }
                 
                 // イベントリスナーを削除し、すべての要素を表示モードに戻す
@@ -1020,8 +1247,38 @@
         }
     
         // 初期設定
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初期表示は表示モード
             switchMode('view');
+            
+            // 日付関連の初期設定
+            const isDayTripCheckbox = document.getElementById('isDayTrip');
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+
+            if (startDate) {
+                startDate.value = formatDateForInput('{{ $trip->confirmed_start_date }}');
+            }
+            if (endDate) {
+                endDate.value = formatDateForInput('{{ $trip->confirmed_end_date }}');
+            }
+
+            if (isDayTripCheckbox && startDate && endDate) {
+                if (isDayTripCheckbox.checked) {
+                    toggleDateInputs(true);
+                }
+
+                // 各入力要素の変更時にvalidateDatesを呼び出す
+                startDate.addEventListener('change', validateDates);
+                endDate.addEventListener('change', validateDates);
+                isDayTripCheckbox.addEventListener('change', function() {
+                    toggleDateInputs(this.checked);
+                    validateDates();
+                });
+
+                // 初期表示時のバリデーション
+                validateDates();
+            }
         });
     </script>
 </body>

@@ -336,4 +336,21 @@ class TripController extends Controller
             return response()->view('errors.500', [], 500);
         }
     }
+
+    public function updateDates(Request $request, Trip $trip)
+    {
+        $validated = $request->validate([
+            'confirmed_start_date' => 'required|date',
+            'confirmed_end_date' => 'required|date|after_or_equal:confirmed_start_date',
+        ]);
+    
+        // 日帰り旅行の場合は、end_dateをstart_dateと同じ値に設定
+        if ($request->has('isDayTrip') && $request->isDayTrip === 'on') {
+            $validated['confirmed_end_date'] = $validated['confirmed_start_date'];
+        }
+    
+        $trip->update($validated);
+    
+        return redirect()->back()->with('success', '日程を更新しました');
+    }
 }
