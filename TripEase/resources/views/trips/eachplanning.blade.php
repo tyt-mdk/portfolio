@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Alpine.js -->
@@ -109,535 +109,677 @@
             </div>
         @endif
     </div>
+    <!-- 通知メッセージ -->
+    <div id="notification" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full shadow-lg opacity-0 transition-opacity duration-300 z-50" style="display: none;">
+        <span id="notificationText"></span>
+    </div>
     <header>
     </header>
+    <!-- タブナビゲーション -->
+    <div class="border-b border-slate-200 mb-6 mt-6">
+        <nav class="max-w-4xl mx-auto px-4">
+            <div class="flex space-x-8" aria-label="Tabs">
+                <!-- 概要タブ -->
+                <a href="#overview" 
+                onclick="switchTab('overview')"
+                class="touch-feedback tab-link px-3 py-2 text-sm font-medium border-b-2 border-sky-500 text-sky-600">
+                    <i class="fa-regular fa-calendar-days mr-2"></i>概要
+                </a>
+                
+                <!-- 要望タブ -->
+                <a href="#requests" 
+                onclick="switchTab('requests')"
+                class="touch-feedback tab-link px-3 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">
+                    <i class="fa-regular fa-comment mr-2"></i>要望
+                </a>
+                
+                <!-- 旅程ノートタブ -->
+                <a href="#itinerary" 
+                onclick="switchTab('itinerary')"
+                class="touch-feedback tab-link px-3 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">
+                    <i class="fa-regular fa-note-sticky mr-2"></i>旅程ノート
+                </a>
+            </div>
+        </nav>
+    </div>
     <main class="flex-1 max-w-4xl mx-auto w-full px-4 py-4 md:py-6 space-y-4 md:space-y-6 pb-32 md:pb-24">
-        <!-- タイトルと目的セクション -->
-        <section class="bg-white rounded-lg shadow-sm p-3 md:p-4 space-y-3 md:space-y-4 relative">
-            <form id="tripEditForm" method="POST" action="{{ route('trips.update', $trip) }}" class="space-y-3 md:space-y-4">
-                @csrf
-                @method('PUT')
-                
-                <!-- タイトル -->
-                <div class="space-y-1">
-                    <p class="text-slate-400 text-sm md:text-base">タイトル</p>
-                    <div class="view-mode-only">
-                        <h1 class="text-lg md:text-xl font-medium text-slate-800">{{ $trip->title }}</h1>
-                    </div>
-                    <div class="edit-mode-only">
-                        <input type="text" 
-                            name="title" 
-                            value="{{ $trip->title }}" 
-                            class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
-                            required>
-                    </div>
-                </div>
-
-                <!-- 区切り線 -->
-                <div class="border-t border-slate-200"></div>
-
-                <!-- 概要メモ -->
-                <div class="space-y-1">
-                    <p class="text-slate-400 text-sm">概要メモ</p>
-                    <div class="view-mode-only">
-                        <p class="text-slate-700 whitespace-pre-wrap">{{ $trip->description }}</p>
-                    </div>
-                    <div class="edit-mode-only">
-                        <textarea name="description" 
-                                rows="4" 
-                                class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
-                                required>{{ $trip->description }}</textarea>
-                    </div>
-                </div>
-            </form>
-        </section>
-
-        <!-- 共有リンク作成ボタン -->
-        <div x-data="{ 
-            showShareLink: false, 
-            shareUrl: '',
-            generateShare() {
-                console.log('Generating share link...');
-                fetch('{{ route('trips.generateShareLink', $trip) }}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    this.shareUrl = data.share_url;
-                    this.showShareLink = true;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('共有リンクの生成に失敗しました');
-                });
-            }
-        }" class="absolute top-4 right-4">
-            <!-- 共有ボタン -->
-            <button @click="generateShare()"
-                    class="inline-flex items-center justify-center space-x-2 px-3 py-2 bg-white text-slate-600 text-sm font-medium rounded-full border border-slate-200 hover:bg-slate-50 transition-colors">
-                <i class="fa-solid fa-share-nodes"></i>
-                <span>共有</span>
-            </button>
-
-            <!-- 共有リンクのモーダル -->
-            <template x-if="showShareLink">
-                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                    @click.self="showShareLink = false">
-                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-medium text-slate-900">共有リンク</h3>
-                            <button @click="showShareLink = false" class="text-slate-400 hover:text-slate-500">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                        <div class="space-y-4">
-                            <div class="flex items-center space-x-2">
+        <!-- タブコンテンツ全体を囲む -->
+        <div class="tab-content">
+            <!-- 概要タブの内容 -->
+            <div id="overview-content" class="tab-pane">
+                <!-- タイトルと目的セクション -->
+                <section class="bg-white rounded-lg shadow-sm p-3 md:p-4 space-y-3 md:space-y-4 relative mb-6">
+                    <form id="tripEditForm" method="POST" action="{{ route('trips.update', $trip) }}" class="space-y-3 md:space-y-4">
+                        @csrf
+                        @method('PUT')
+                        
+                        <!-- タイトル -->
+                        <div class="space-y-1">
+                            <p class="text-slate-400 text-sm md:text-base">タイトル</p>
+                            <div class="view-mode-only">
+                                <h1 class="text-lg md:text-xl font-medium text-slate-800">{{ $trip->title }}</h1>
+                            </div>
+                            <div class="edit-mode-only">
                                 <input type="text" 
-                                    x-model="shareUrl" 
-                                    readonly 
-                                    class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 text-sm focus:outline-none">
-                                <button @click="navigator.clipboard.writeText(shareUrl)"
-                                        class="inline-flex items-center justify-center px-3 py-2 bg-sky-500 text-white text-sm font-medium rounded-md hover:bg-sky-600 transition-colors">
-                                    <i class="fa-regular fa-copy mr-2"></i>
-                                    コピー
-                                </button>
+                                    name="title" 
+                                    value="{{ $trip->title }}" 
+                                    class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
+                                    required>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </template>
-        </div>
 
-        <!-- 確定した日程の表示セクション -->
-        <section class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-            <div class="p-4 bg-slate-50 border-b border-slate-200">
-                <h3 class="font-medium text-slate-800">確定した日程</h3>
-            </div>
+                        <!-- 区切り線 -->
+                        <div class="border-t border-slate-200"></div>
 
-            <!-- 確定日程の表示（常に表示） -->
-            <div id="confirmedDateDisplay" class="p-4">
-                <div class="flex items-center gap-2 text-slate-700">
-                    <i class="fa-regular fa-calendar text-sky-500"></i>
-                    <span class="text-base" id="dateDisplayText">
-                        @if($trip->confirmed_start_date && $trip->confirmed_end_date)
-                            @php
-                                $startDate = \Carbon\Carbon::parse($trip->confirmed_start_date);
-                                $endDate = \Carbon\Carbon::parse($trip->confirmed_end_date);
-                                $isSameDay = $startDate->isSameDay($endDate);
-                            @endphp
-                            
-                            {{ $startDate->format('Y年n月j日') }}
-                            @if($isSameDay)
-                                <span class="ml-2 text-sm text-slate-500">(日帰り)</span>
-                            @else
-                                <span class="mx-2">～</span>
-                                {{ $endDate->format('Y年n月j日') }}
-                                <span class="ml-2 text-sm text-slate-500">
-                                    ({{ $startDate->diffInDays($endDate) }}泊
-                                    {{ $startDate->diffInDays($endDate) + 1 }}日)
-                                </span>
-                            @endif
-                        @else
-                            <span class="text-slate-500">
-                                <i class="fa-regular fa-calendar-xmark mr-2"></i>
-                                日程はまだ確定していません
-                            </span>
-                        @endif
-                    </span>
-                </div>
-            </div>
+                        <!-- 概要メモ -->
+                        <div class="space-y-1">
+                            <p class="text-slate-400 text-sm">概要メモ</p>
+                            <div class="view-mode-only">
+                                <p class="text-slate-700 whitespace-pre-wrap">{{ $trip->description }}</p>
+                            </div>
+                            <div class="edit-mode-only">
+                                <textarea name="description" 
+                                        rows="4" 
+                                        class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
+                                        required>{{ $trip->description }}</textarea>
+                            </div>
+                        </div>
+                    </form>
+                </section>
 
-            <!-- 編集モードの場合のみ表示 -->
-            <!-- 編集フォーム -->
-            <form id="confirmedDateForm" action="{{ route('trips.update-dates', ['trip' => $trip->id]) }}" 
-                method="POST" class="p-4 space-y-4 border-t border-slate-200 bg-slate-50 edit-mode-only hidden">
-                @csrf
-                @method('PATCH')
-                
-                <!-- 日帰り旅行かどうかの選択 -->
-                <div class="mb-4">
-                    <label class="inline-flex items-center text-sm text-slate-700">
-                        <input type="checkbox" name="isDayTrip" id="isDayTrip" class="form-checkbox text-sky-500" 
-                            onchange="toggleDateInputs(this.checked)"
-                            {{ $trip->confirmed_start_date === $trip->confirmed_end_date ? 'checked' : '' }}>
-                        <span class="ml-2">日帰り旅行</span>
-                    </label>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block">
-                            <span class="text-sm font-medium text-slate-700" id="dateLabel">
-                                {{ $trip->confirmed_start_date === $trip->confirmed_end_date ? '旅行日' : '開始日' }}
-                            </span>
-                            <input type="date" name="confirmed_start_date" id="startDate"
-                                class="mt-1 w-full rounded shadow-sm border-slate-200 focus:border-sky-500 focus:ring focus:ring-sky-200 focus:ring-opacity-50"
-                                value="{{ $trip->confirmed_start_date }}"
-                                onchange="updateDateDisplay()">
-                        </label>
-                    </div>
-                    <div id="endDateContainer">
-                        <label class="block">
-                            <span class="text-sm font-medium text-slate-700">終了日</span>
-                            <input type="date" name="confirmed_end_date" id="endDate"
-                                class="mt-1 w-full rounded shadow-sm border-slate-200 focus:border-sky-500 focus:ring focus:ring-sky-200 focus:ring-opacity-50"
-                                value="{{ $trip->confirmed_end_date }}"
-                                onchange="updateDateDisplay()">
-                        </label>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 pt-2">
-                    <button type="submit" id="submitButton"
-                            class="px-4 py-2 text-sm bg-sky-500 text-white rounded shadow-sm hover:bg-sky-600 transition-colors">
-                        保存
+                <!-- 共有リンク作成ボタン -->
+                <div x-data="{ 
+                    showShareLink: false, 
+                    shareUrl: '',
+                    generateShare() {
+                        fetch('{{ route('trips.generateShareLink', $trip) }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // share_urlを直接使用
+                                this.shareUrl = data.share_url;
+                                this.showShareLink = true;
+                            } else {
+                                throw new Error(data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('共有リンクの生成に失敗しました');
+                        });
+                    }
+                }" class="absolute top-4 right-4">
+                    <!-- 共有ボタン -->
+                    <button @click="generateShare()"
+                            class="inline-flex items-center justify-center space-x-2 px-3 py-2 bg-white text-slate-600 text-sm font-medium rounded-full border border-slate-200 hover:bg-slate-50 transition-colors">
+                        <i class="fa-solid fa-share-nodes"></i>
+                        <span>共有</span>
                     </button>
+
+                    <!-- 共有リンクのモーダル -->
+                    <template x-if="showShareLink">
+                        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                            @click.self="showShareLink = false">
+                            <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-medium text-slate-900">共有リンク</h3>
+                                    <button @click="showShareLink = false" class="text-slate-400 hover:text-slate-500">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="flex items-center space-x-2">
+                                        <input type="text" 
+                                            x-model="shareUrl" 
+                                            readonly 
+                                            class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 text-sm focus:outline-none">
+                                        <button @click="navigator.clipboard.writeText(shareUrl)"
+                                                class="inline-flex items-center justify-center px-3 py-2 bg-sky-500 text-white text-sm font-medium rounded-md hover:bg-sky-600 transition-colors">
+                                            <i class="fa-regular fa-copy mr-2"></i>
+                                            コピー
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
-            </form>
-        </section>
 
-        <!-- 候補日一覧テーブル -->
-        <section class="bg-white rounded-lg shadow-sm overflow-hidden">
-            @php
-                // 投票済みのユーザーのみを取得
-                $votedUsers = $users->filter(function($user) use ($dateVotes) {
-                    return $dateVotes->where('user_id', $user->id)->count() > 0;
-                });
-                
-                $hasAnyVotes = $dateVotes->count() > 0;
-                $loginUserVoted = $dateVotes->where('user_id', auth()->id())->count() > 0;
-                $otherUsersVoted = $dateVotes->where('user_id', '!=', auth()->id())->count() > 0;
-                $allUsersVoted = $users->every(function($user) use ($dateVotes, $candidateDates) {
-                    return $dateVotes->where('user_id', $user->id)->count() === $candidateDates->unique('proposed_date')->count();
-                });
-                
-                // 全参加者が投票済みかどうかを確認
-                $allParticipantsVoted = $votedUsers->count() === $users->count();
-            @endphp
+                <!-- 確定した日程の表示セクション -->
+                <section class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+                    <div class="p-4 bg-slate-50 border-b border-slate-200">
+                        <h3 class="font-medium text-slate-800">確定した日程</h3>
+                    </div>
 
-            @if($candidateDates->count() > 0 && $votedUsers->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="p-3 text-center font-medium text-slate-600 min-w-[100px]">参加者</th>
-                                @foreach($candidateDates->sortBy('proposed_date')->unique('proposed_date') as $date)
-                                    <th class="p-3 text-center font-medium text-slate-600 whitespace-nowrap">
-                                        {{ \Carbon\Carbon::parse($date->proposed_date)->format('n/j') }}
-                                    </th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($votedUsers as $user)
-                                <tr class="border-b border-slate-200 last:border-0">
-                                    <td class="p-3 text-center font-medium min-w-[100px]">
-                                        {{ $user->name }}
-                                    </td>
-                                    @foreach($candidateDates->sortBy('proposed_date')->unique('proposed_date') as $date)
-                                        <td class="p-3 text-center">
-                                            @php
-                                                $vote = $dateVotes->where('user_id', $user->id)
-                                                            ->where('date_id', $date->id)
-                                                            ->first();
-                                            @endphp
-                                            <span class="
-                                                @if($vote && $vote->judgement === '〇') text-emerald-500
-                                                @elseif($vote && $vote->judgement === '△') text-orange-500
-                                                @elseif($vote && $vote->judgement === '×') text-rose-500
-                                                @else text-slate-400
-                                                @endif
-                                            ">
-                                                {{ $vote ? $vote->judgement : '未' }}
-                                            </span>
-                                        </td>
+                    <!-- 確定日程の表示（常に表示） -->
+                    <div id="confirmedDateDisplay" class="p-4">
+                        <div class="flex items-center gap-2 text-slate-700">
+                            <i class="fa-regular fa-calendar text-sky-500"></i>
+                            <span class="text-base" id="dateDisplayText">
+                                @if($trip->confirmed_start_date && $trip->confirmed_end_date)
+                                    @php
+                                        $startDate = \Carbon\Carbon::parse($trip->confirmed_start_date);
+                                        $endDate = \Carbon\Carbon::parse($trip->confirmed_end_date);
+                                        $isSameDay = $startDate->isSameDay($endDate);
+                                    @endphp
+                                    
+                                    {{ $startDate->format('Y年n月j日') }}
+                                    @if($isSameDay)
+                                        <span class="ml-2 text-sm text-slate-500">(日帰り)</span>
+                                    @else
+                                        <span class="mx-2">～</span>
+                                        {{ $endDate->format('Y年n月j日') }}
+                                        <span class="ml-2 text-sm text-slate-500">
+                                            ({{ $startDate->diffInDays($endDate) }}泊
+                                            {{ $startDate->diffInDays($endDate) + 1 }}日)
+                                        </span>
+                                    @endif
+                                @else
+                                    <span class="text-slate-500">
+                                        <i class="fa-regular fa-calendar-xmark mr-2"></i>
+                                        日程はまだ確定していません
+                                    </span>
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 編集モードの場合のみ表示 -->
+                    <!-- 編集フォーム -->
+                    <form id="confirmedDateForm" action="{{ route('trips.update-dates', ['trip' => $trip->id]) }}" 
+                        method="POST" class="p-4 space-y-4 border-t border-slate-200 bg-slate-50 edit-mode-only hidden">
+                        @csrf
+                        @method('PATCH')
+                        
+                        <!-- 日帰り旅行かどうかの選択 -->
+                        <div class="mb-4">
+                            <label class="inline-flex items-center text-sm text-slate-700">
+                                <input type="checkbox" name="isDayTrip" id="isDayTrip" class="form-checkbox text-sky-500" 
+                                    onchange="toggleDateInputs(this.checked)"
+                                    {{ $trip->confirmed_start_date === $trip->confirmed_end_date ? 'checked' : '' }}>
+                                <span class="ml-2">日帰り旅行</span>
+                            </label>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block">
+                                    <span class="text-sm font-medium text-slate-700" id="dateLabel">
+                                        {{ $trip->confirmed_start_date === $trip->confirmed_end_date ? '旅行日' : '開始日' }}
+                                    </span>
+                                    <input type="date" name="confirmed_start_date" id="startDate"
+                                        class="mt-1 w-full rounded shadow-sm border-slate-200 focus:border-sky-500 focus:ring focus:ring-sky-200 focus:ring-opacity-50"
+                                        value="{{ $trip->confirmed_start_date }}"
+                                        onchange="updateDateDisplay()">
+                                </label>
+                            </div>
+                            <div id="endDateContainer">
+                                <label class="block">
+                                    <span class="text-sm font-medium text-slate-700">終了日</span>
+                                    <input type="date" name="confirmed_end_date" id="endDate"
+                                        class="mt-1 w-full rounded shadow-sm border-slate-200 focus:border-sky-500 focus:ring focus:ring-sky-200 focus:ring-opacity-50"
+                                        value="{{ $trip->confirmed_end_date }}"
+                                        onchange="updateDateDisplay()">
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- 候補日一覧テーブル -->
+                <section class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+                    @php
+                        // 投票済みのユーザーのみを取得
+                        $votedUsers = $users->filter(function($user) use ($dateVotes) {
+                            return $dateVotes->where('user_id', $user->id)->count() > 0;
+                        });
+                        
+                        $hasAnyVotes = $dateVotes->count() > 0;
+                        $loginUserVoted = $dateVotes->where('user_id', auth()->id())->count() > 0;
+                        $otherUsersVoted = $dateVotes->where('user_id', '!=', auth()->id())->count() > 0;
+                        $allUsersVoted = $users->every(function($user) use ($dateVotes, $candidateDates) {
+                            return $dateVotes->where('user_id', $user->id)->count() === $candidateDates->unique('proposed_date')->count();
+                        });
+                        
+                        // 全参加者が投票済みかどうかを確認
+                        $allParticipantsVoted = $votedUsers->count() === $users->count();
+                    @endphp
+
+                    @if($candidateDates->count() > 0 && $votedUsers->count() > 0)
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200">
+                                        <th class="p-3 text-center font-medium text-slate-600 min-w-[100px]">参加者</th>
+                                        @foreach($candidateDates->sortBy('proposed_date')->unique('proposed_date') as $date)
+                                            <th class="p-3 text-center font-medium text-slate-600 whitespace-nowrap">
+                                                {{ \Carbon\Carbon::parse($date->proposed_date)->format('n/j') }}
+                                            </th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($votedUsers as $user)
+                                        <tr class="border-b border-slate-200 last:border-0">
+                                            <td class="p-3 text-center font-medium min-w-[100px]">
+                                                {{ $user->name }}
+                                            </td>
+                                            @foreach($candidateDates->sortBy('proposed_date')->unique('proposed_date') as $date)
+                                                <td class="p-3 text-center">
+                                                    @php
+                                                        $vote = $dateVotes->where('user_id', $user->id)
+                                                                    ->where('date_id', $date->id)
+                                                                    ->first();
+                                                    @endphp
+                                                    <span class="
+                                                        @if($vote && $vote->judgement === '〇') text-emerald-500
+                                                        @elseif($vote && $vote->judgement === '△') text-orange-500
+                                                        @elseif($vote && $vote->judgement === '×') text-rose-500
+                                                        @else text-slate-400
+                                                        @endif
+                                                    ">
+                                                        {{ $vote ? $vote->judgement : '未' }}
+                                                    </span>
+                                                </td>
+                                            @endforeach
+                                        </tr>
                                     @endforeach
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                </tbody>
+                            </table>
+                        </div>
 
-                <!-- 状態メッセージ -->
-                <div class="p-4 text-center text-slate-500">
-                    @if($allParticipantsVoted)
-                        結果を表示しています。
-                    @elseif($loginUserVoted && !$otherUsersVoted)
-                        他の参加者の登録待ちです。
-                    @elseif(!$loginUserVoted && $otherUsersVoted)
-                        候補日はまだ登録されていません。
-                    @elseif($loginUserVoted && $otherUsersVoted)
-                        他の参加者の登録待ちです。
+                        <!-- 状態メッセージ -->
+                        <div class="p-4 text-center text-slate-500">
+                            @if($allParticipantsVoted)
+                                結果を表示しています。
+                            @elseif($loginUserVoted && !$otherUsersVoted)
+                                他の参加者の登録待ちです。
+                            @elseif(!$loginUserVoted && $otherUsersVoted)
+                                候補日はまだ登録されていません。
+                            @elseif($loginUserVoted && $otherUsersVoted)
+                                他の参加者の登録待ちです。
+                            @endif
+                        </div>
+                    @else
+                        <div class="p-4 text-center text-slate-500">
+                            候補日はまだ登録されていません。
+                        </div>
                     @endif
-                </div>
-            @else
-                <div class="p-4 text-center text-slate-500">
-                    候補日はまだ登録されていません。
-                </div>
-            @endif
-        </section>
+                </section>
 
-        <!-- 日程調整ボタン -->
-        <div class="text-center edit-mode-only">
-            <a href="{{ route('trips.schedule', $trip->id) }}" 
-               class="inline-flex items-center justify-center px-6 py-2.5 bg-sky-500 text-white font-medium rounded-md shadow-sm hover:bg-sky-600 transition-colors">
-               <i class="fa-regular fa-calendar-check mr-2"></i>
-               日程を調整する
-            </a>
-        </div>
-
-        <!-- ユーザー要望一覧 -->
-        <section class="bg-white rounded-lg shadow-sm p-3 md:p-4 space-y-3 md:space-y-4">
-            <h2 class="text-base md:text-lg font-medium text-slate-700 border-b border-slate-200 pb-2">みんなの要望</h2>
-
-            <!-- 要望追加フォーム -->
-            <div class="mt-4 mb-6 edit-mode-only" style="display: none;">
-                <div id="request-add-placeholder" class="cursor-pointer">
-                    <div class="text-slate-400 border-b-2 border-slate-600 py-2">
-                        要望を追加する
-                    </div>
+                <!-- 日程調整ボタン -->
+                <div class="text-center edit-mode-only mb-6">
+                    <a href="{{ route('trips.schedule', $trip->id) }}" 
+                    class="touch-feedback inline-flex items-center justify-center px-6 py-2.5 bg-sky-500 text-white font-medium rounded-md shadow-sm hover:bg-sky-600 transition-colors">
+                    <i class="fa-regular fa-calendar-check mr-2"></i>
+                    日程を調整する
+                    </a>
                 </div>
-            
-                <form id="request-add-form" action="{{ route('trips.request', $trip->id) }}" method="POST" class="hidden">
-                    @csrf
-                    <div class="flex flex-col space-y-3">
-                        <input type="text" 
-                               name="content" 
-                               class="w-full border-0 border-b-2 border-slate-600 focus:ring-0 focus:border-sky-500 py-2 text-slate-700 bg-transparent transition-colors"
-                               placeholder="要望を追加する">
-                        <div class="flex items-center justify-end space-x-3 pt-2">
-                            <button type="button" 
-                                    onclick="cancelAddRequest()"
-                                    class="px-4 py-1.5 text-slate-500 hover:text-slate-600 rounded-full text-sm transition-colors">
-                                キャンセル
-                            </button>
-                            <button type="submit" 
-                                    class="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-sm transition-colors">
-                                投稿
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- 要望一覧 -->
-            <div class="space-y-4">
-                @foreach($userRequests as $request)
-                    <div class="border-b border-slate-100 last:border-0 pb-4">
-                        <!-- ヘッダー部分（ユーザー名、日時、いいねボタン） -->
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start space-x-2">
-                                <p class="font-medium text-slate-700">{{ $request->user->name }}</p>
-                                <p class="text-slate-400">
-                                    {{ \Carbon\Carbon::parse($request->created_at)->format('n/j H:i') }}
-                                </p>
+            </div><!-- 概要タブ終わり -->
+
+            <!-- 要望タブの内容 -->
+            <div id="requests-content" class="tab-pane hidden">
+                <!-- ユーザー要望一覧 -->
+                <section class="bg-white rounded-lg shadow-sm p-3 md:p-4 space-y-3 md:space-y-4">
+                    <h2 class="text-base md:text-lg font-medium text-slate-700 border-b border-slate-200 pb-2">みんなの要望</h2>
+
+                    <!-- 要望追加フォーム -->
+                    <div class="mt-4 mb-6 edit-mode-only" style="display: none;">
+                        <div id="request-add-placeholder" class="cursor-pointer">
+                            <div class="text-slate-400 border-b-2 border-slate-600 py-2">
+                                要望を追加する
                             </div>
                         </div>
-
-                        <!-- 要望内容 -->
-                        <div class="flex-1" data-editable data-type="request" data-id="{{ $request->id }}">
-                            <!-- 表示モード -->
-                            <div id="request-content-{{ $request->id }}">
-                                <p class="text-slate-600 rounded px-2 py-1 transition-colors hover:bg-slate-50">
-                                    {{ $request->content }}
-                                </p>
+                    
+                        <form id="request-add-form" action="{{ route('requests.store') }}" method="POST" class="hidden">
+                            @csrf
+                            <input type="hidden" name="trip_id" value="{{ $trip->id }}">
+                            <div class="flex flex-col space-y-3">
+                                <input type="text" 
+                                    name="content" 
+                                    class="w-full border-0 border-b-2 border-slate-600 focus:ring-0 focus:border-sky-500 py-2 text-slate-700 bg-transparent transition-colors"
+                                    placeholder="要望を追加する">
+                                <div class="flex items-center justify-end space-x-3 pt-2">
+                                    <button type="button" 
+                                            onclick="cancelAddRequest()"
+                                            class="touch-feedback px-4 py-1.5 text-slate-500 hover:text-slate-600 rounded-full text-sm transition-colors">
+                                        キャンセル
+                                    </button>
+                                    <button type="submit" 
+                                            class="touch-feedback px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-sm transition-colors">
+                                        投稿
+                                    </button>
+                                </div>
                             </div>
-                            <!-- 編集モード -->
-                            <form id="request-edit-form-{{ $request->id }}"
-                                    style="display: none;"
-                                    onsubmit="return false;">
-                                @csrf
-                                @method('PUT')
-                                <div class="flex items-start space-x-2">
-                                    <textarea name="content" 
-                                            class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
-                                            rows="2">{{ $request->content }}</textarea>
-                                    <div class="flex items-center space-x-1">
-                                        <button type="button" 
-                                                onclick="cancelEdit('request', {{ $request->id }})"
-                                                class="p-1 text-slate-400 hover:text-slate-600">
-                                            <i class="fa-solid fa-xmark"></i>
-                                        </button>
-                                        <button type="button" 
-                                                onclick="deleteRequest({{ $request->id }})"
-                                                class="p-1 text-slate-400 hover:text-rose-500 edit-mode-only">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
+                        </form>
+                    </div>
+                    
+                    <!-- 要望一覧 -->
+                    <div class="space-y-4">
+                        @foreach($userRequests as $request)
+                            <div class="border-b border-slate-100 last:border-0 pb-4">
+                                <!-- ヘッダー部分（ユーザー名、日時） -->
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start space-x-2">
+                                        <p class="font-medium text-slate-700">{{ $request->user->name }}</p>
+                                        <p class="text-slate-400">
+                                            {{ \Carbon\Carbon::parse($request->created_at)->format('n/j H:i') }}
+                                        </p>
                                     </div>
                                 </div>
-                            </form>
-                        </div>
 
-                        <!-- アクションボタン部分 -->
-                        <div class="flex items-center space-x-3 mt-2">
-                            <!-- いいねボタン（常に表示） -->
-                            <button 
-                                onclick="toggleLike({{ $request->id }}, this)" 
-                                class="like-button flex items-center space-x-1 {{ $request->isLikedBy(Auth::user()) ? 'text-red-500' : 'text-slate-400' }}"
-                            >
-                                <i class="fa-heart {{ $request->isLikedBy(Auth::user()) ? 'fas' : 'far' }}"></i>
-                                <span class="like-count">{{ $request->likes->count() }}</span>
-                            </button>
-
-                            <!-- 返信ボタン（編集モード時のみ表示） -->
-                            <button type="button" 
-                                    onclick="showCommentForm({{ $request->id }})"
-                                    class="edit-mode-only text-slate-400 hover:text-slate-600 text-sm transition-colors"
-                                    style="display: none;">
-                                <i class="far fa-comment"></i>
-                            </button>
-
-                            <!-- コメント数表示/折りたたみボタン -->
-                            <button type="button"
-                                    onclick="toggleComments({{ $request->id }})"
-                                    class="text-slate-400 hover:text-slate-600 text-sm transition-colors">
-                                <i class="fa-solid fa-caret-down comment-icon-{{ $request->id }} {{ $request->comments->count() > 0 ? '' : 'hidden' }}"></i>
-                                <span class="comment-count-{{ $request->id }}">{{ $request->comments->count() > 0 ? $request->comments->count().'件の返信' : '' }}</span>
-                            </button>
-                        </div>
-
-                        <!-- コメント追加フォーム -->
-                        <div id="comments-section-{{ $request->id }}" class="mt-2 hidden">
-                            <!-- コメント入力フォーム -->
-                            <form id="comment-add-form-{{ $request->id }}" 
-                                action="{{ route('requests.comment', $request->id) }}" 
-                                method="POST" 
-                                class="hidden mb-4">
-                                @csrf
-                                <div class="flex flex-col space-y-3">
-                                    <input type="text" 
-                                        name="content" 
-                                        class="w-full border-0 border-b-2 border-slate-600 focus:ring-0 focus:border-sky-500 py-2 text-slate-700 bg-transparent transition-colors text-sm"
-                                        placeholder="コメントを追加">
-                                    <div class="flex items-center justify-end space-x-3 pt-2">
-                                        <button type="button" 
-                                                onclick="cancelCommentForm({{ $request->id }})"
-                                                class="px-4 py-1.5 text-slate-500 hover:text-slate-600 rounded-full text-sm transition-colors">
-                                            キャンセル
-                                        </button>
-                                        <button type="submit" 
-                                                class="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-sm transition-colors">
-                                            送信
-                                        </button>
+                                <!-- 要望内容 -->
+                                <div class="flex-1" 
+                                    data-editable="{{ $request->user_id === Auth::id() ? 'true' : 'false' }}" 
+                                    data-type="request" 
+                                    data-id="{{ $request->id }}">
+                                    <!-- 表示モード -->
+                                    <div id="request-content-{{ $request->id }}">
+                                        <p class="text-slate-600 rounded px-2 py-1 transition-colors {{ $request->user_id === Auth::id() ? 'hover:bg-slate-50' : '' }}">
+                                            {{ $request->content }}
+                                        </p>
                                     </div>
-                                </div>
-                            </form>
-                            <div class="mt-4 pl-4 space-y-2">
-                                @foreach($request->comments as $comment)
-                                    <div class="group">
-                                        <!-- コメントヘッダー -->
-                                        <div class="flex items-start space-x-2">
-                                            <p class="font-medium text-slate-700">{{ $comment->user->name }}</p>
-                                            <p class="text-slate-400">
-                                                {{ \Carbon\Carbon::parse($comment->created_at)->format('n/j H:i') }}
-                                            </p>
-                                        </div>
-                                        
-                                        <!-- コメント内容 -->
-                                        @if($comment->user_id === Auth::id())
-                                            <div class="flex items-start justify-between">
-                                                <div class="flex-1" data-editable data-type="comment" data-id="{{ $comment->id }}">
-                                                    <!-- 表示モード -->
-                                                    <div id="comment-content-{{ $comment->id }}">
-                                                        <p class="text-slate-600 rounded px-2 py-1 transition-colors hover:bg-slate-50">
-                                                            {{ $comment->content }}
-                                                        </p>
-                                                    </div>
-                                                    <!-- コメントの編集フォーム -->
-                                                    <form action="{{ route('request.comments.update', $comment->id) }}" 
-                                                        method="POST" 
-                                                        style="display: none;"
-                                                        id="comment-edit-form-{{ $comment->id }}"
-                                                        onsubmit="return false;">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <div class="flex items-start space-x-2">
-                                                        <input type="text" 
-                                                                name="content" 
-                                                                value="{{ $comment->content }}"
-                                                                class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
-                                                        <div class="flex items-center space-x-1">
-                                                            <button type="button" 
-                                                                    onclick="cancelEdit('comment', {{ $comment->id }})"
-                                                                    class="p-1 text-slate-400 hover:text-slate-600">
-                                                                <i class="fa-solid fa-xmark"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    </form>
-                                                </div>
-                                                <!-- 削除ボタン（編集モードのみ表示） -->
-                                                <div class="edit-mode-only opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button type="button"
-                                                            onclick="deleteComment({{ $comment->id }})" 
-                                                            class="p-1 text-slate-400 hover:text-rose-500">
+                                    <!-- 編集モード（作成者のみ表示） -->
+                                    @if($request->user_id === Auth::id())
+                                        <form id="request-edit-form-{{ $request->id }}"
+                                                style="display: none;"
+                                                onsubmit="return false;">
+                                            @csrf
+                                            @method('PUT')
+                                            <div class="flex items-start space-x-2">
+                                                <textarea name="content" 
+                                                        class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"
+                                                        rows="2">{{ $request->content }}</textarea>
+                                                <div class="flex items-center space-x-1">
+                                                    <button type="button" 
+                                                            onclick="cancelEdit('request', {{ $request->id }})"
+                                                            class="touch-feedback p-1 text-slate-400 hover:text-slate-600">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                    <button type="button" 
+                                                            onclick="deleteRequest({{ $request->id }})"
+                                                            class="touch-feedback p-1 text-slate-400 hover:text-rose-500 edit-mode-only">
                                                         <i class="fa-solid fa-trash"></i>
                                                     </button>
                                                 </div>
                                             </div>
-                                        @else
-                                            <p class="text-slate-600 px-2 py-1">{{ $comment->content }}</p>
-                                        @endif
+                                        </form>
+                                    @endif
+                                </div>
+
+                                <!-- アクションボタン部分 -->
+                                <div class="flex items-center space-x-3 mt-2">
+                                    <!-- いいねボタン（常に表示） -->
+                                    <button 
+                                        onclick="toggleLike({{ $request->id }}, this)" 
+                                        class="touch-feedback like-button flex items-center space-x-1 {{ $request->isLikedBy(Auth::user()) ? 'text-red-500' : 'text-slate-400' }}"
+                                    >
+                                        <i class="fa-heart {{ $request->isLikedBy(Auth::user()) ? 'fas' : 'far' }}"></i>
+                                        <span class="like-count">{{ $request->likes->count() }}</span>
+                                    </button>
+
+                                    <!-- 返信ボタン（編集モード時のみ表示） -->
+                                    <button type="button" 
+                                            onclick="showCommentForm({{ $request->id }})"
+                                            class="touch-feedback edit-mode-only text-slate-400 hover:text-slate-600 text-sm transition-colors"
+                                            style="display: none;">
+                                        <i class="far fa-comment"></i>
+                                    </button>
+
+                                    <!-- コメント数表示/折りたたみボタン -->
+                                    <button type="button"
+                                            onclick="toggleComments({{ $request->id }})"
+                                            class="touch-feedback text-slate-400 hover:text-slate-600 text-sm transition-colors">
+                                        <i class="fa-solid fa-caret-down comment-icon-{{ $request->id }} {{ $request->comments->count() > 0 ? '' : 'hidden' }}"></i>
+                                        <span class="comment-count-{{ $request->id }}">{{ $request->comments->count() > 0 ? $request->comments->count().'件の返信' : '' }}</span>
+                                    </button>
+                                </div>
+
+                                <!-- コメント追加フォーム -->
+                                <div id="comments-section-{{ $request->id }}" class="mt-2 hidden">
+                                    <!-- コメント入力フォーム -->
+                                    <form id="comment-add-form-{{ $request->id }}" 
+                                        action="{{ route('requests.comment', $request->id) }}" 
+                                        method="POST" 
+                                        class="hidden mb-4">
+                                        @csrf
+                                        <div class="flex flex-col space-y-3">
+                                            <input type="text" 
+                                                name="content" 
+                                                class="w-full border-0 border-b-2 border-slate-600 focus:ring-0 focus:border-sky-500 py-2 text-slate-700 bg-transparent transition-colors text-sm"
+                                                placeholder="コメントを追加">
+                                            <div class="flex items-center justify-end space-x-3 pt-2">
+                                                <button type="button" 
+                                                        onclick="cancelCommentForm({{ $request->id }})"
+                                                        class="touch-feedback px-4 py-1.5 text-slate-500 hover:text-slate-600 rounded-full text-sm transition-colors">
+                                                    キャンセル
+                                                </button>
+                                                <button type="submit" 
+                                                        class="touch-feedback px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-sm transition-colors">
+                                                    送信
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <div class="mt-4 pl-4 space-y-2">
+                                        @foreach($request->comments as $comment)
+                                            <div class="group">
+                                                <!-- コメントヘッダー -->
+                                                <div class="flex items-start space-x-2">
+                                                    <p class="font-medium text-slate-700">{{ $comment->user->name }}</p>
+                                                    <p class="text-slate-400">
+                                                        {{ \Carbon\Carbon::parse($comment->created_at)->format('n/j H:i') }}
+                                                    </p>
+                                                </div>
+                                                
+                                                <!-- コメント内容 -->
+                                                @if($comment->user_id === Auth::id())
+                                                    <div class="flex items-start justify-between">
+                                                        <div class="flex-1" data-editable data-type="comment" data-id="{{ $comment->id }}">
+                                                            <!-- 表示モード -->
+                                                            <div id="comment-content-{{ $comment->id }}">
+                                                                <p class="text-slate-600 rounded px-2 py-1 transition-colors hover:bg-slate-50">
+                                                                    {{ $comment->content }}
+                                                                </p>
+                                                            </div>
+                                                            <!-- コメントの編集フォーム -->
+                                                            <form action="{{ route('request.comments.update', $comment->id) }}" 
+                                                                method="POST" 
+                                                                style="display: none;"
+                                                                id="comment-edit-form-{{ $comment->id }}"
+                                                                onsubmit="return false;">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <div class="flex items-start space-x-2">
+                                                                <input type="text" 
+                                                                        name="content" 
+                                                                        value="{{ $comment->content }}"
+                                                                        class="flex-1 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
+                                                                <div class="flex items-center space-x-1">
+                                                                    <button type="button" 
+                                                                            onclick="cancelEdit('comment', {{ $comment->id }})"
+                                                                            class="touch-feedback p-1 text-slate-400 hover:text-slate-600">
+                                                                        <i class="fa-solid fa-xmark"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            </form>
+                                                        </div>
+                                                        <!-- 削除ボタン（編集モードのみ表示） -->
+                                                        <div class="edit-mode-only opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button type="button"
+                                                                    onclick="deleteComment({{ $comment->id }})" 
+                                                                    class="touch-feedback p-1 text-slate-400 hover:text-rose-500">
+                                                                <i class="fa-solid fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <p class="text-slate-600 px-2 py-1">{{ $comment->content }}</p>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            </div><!-- 要望タブ終わり -->
+
+            <!-- 旅程ノートタブの内容 -->
+            <div id="itinerary-content" class="tab-pane hidden">
+                <div class="md:flex gap-6">
+                    <!-- 左側：旅程ノート一覧 -->
+                    <div class="flex-1 space-y-4 mb-6">
+                        <!-- 旅程ノート追加フォーム -->
+                        <div class="edit-mode-only">
+                            <form id="itinerary-add-form" 
+                                action="{{ route('trips.itinerary.store', $trip) }}"
+                                method="POST" 
+                                class="bg-white rounded-lg shadow-sm p-4 space-y-4">
+                                @csrf
+                                <div class="space-y-3">
+                                    <input type="text" 
+                                        name="day_label" 
+                                        placeholder="日程ラベル（例：1日目、最終日）" 
+                                        class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
+                                    <textarea name="memo" 
+                                            rows="4" 
+                                            placeholder="メモを入力" 
+                                            class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500"></textarea>
+                                </div>
+                                <div class="flex justify-end">
+                                    <button type="submit" 
+                                            class="touch-feedback px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition-colors">
+                                        追加
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- 旅程ノート一覧 -->
+                        <div id="itinerary-list" class="space-y-4">
+                            @foreach($trip->itineraries->sortBy('order') as $itinerary)
+                                <div class="bg-white rounded-lg shadow-sm p-4 space-y-3 group cursor-pointer" 
+                                    data-id="{{ $itinerary->id }}"
+                                    data-type="itinerary"
+                                    data-editable
+                                    onclick="startEdit('itinerary', {{ $itinerary->id }})">
+                                    <!-- 表示モード -->
+                                    <div id="itinerary-content-{{ $itinerary->id }}">
+                                        <div class="flex justify-between items-start">                                    
+                                            <h3 class="font-medium text-slate-800">{{ $itinerary->day_label }}</h3>
+                                        </div>
+                                        <p class="text-slate-600 whitespace-pre-wrap mt-2">{{ $itinerary->memo }}</p>
+                                    </div>
+                                    
+                                    <!-- 編集モード -->
+                                    <form id="itinerary-edit-form-{{ $itinerary->id }}"
+                                        data-type="itinerary"
+                                        data-id="{{ $itinerary->id }}"
+                                        style="display: none;"
+                                        onsubmit="return false;"
+                                        onclick="event.stopPropagation()">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="space-y-3">
+                                            <input type="text" 
+                                                name="day_label" 
+                                                value="{{ $itinerary->day_label }}" 
+                                                class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">
+                                            <textarea name="memo" 
+                                                    rows="4" 
+                                                    class="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-sky-500">{{ $itinerary->memo }}</textarea>
+                                        </div>
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <button type="button" 
+                                                    onclick="cancelEdit('itinerary', {{ $itinerary->id }})"
+                                                    class="touch-feedback p-1 text-slate-400 hover:text-slate-600">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    onclick="deleteItinerary({{ $itinerary->id }})"
+                                                    class="touch-feedback p-1 text-slate-400 hover:text-rose-500 edit-mode-only">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- 右側：要望一覧（参考用） -->
+                    <div class="md:w-80 space-y-4 mb-6">
+                        <div class="bg-white rounded-lg shadow-sm p-4">
+                            <h3 class="font-medium text-slate-700 mb-3">みんなの要望</h3>
+                            <div class="space-y-2">
+                                @foreach($trip->requests as $request)
+                                    <div class="text-sm text-slate-600 pb-2 border-b border-slate-100 last:border-0">
+                                        {{ $request->content }}
                                     </div>
                                 @endforeach
                             </div>
                         </div>
                     </div>
-                @endforeach
-            </div>
-        </section>
+                </div>
+            </div><!-- 旅程ノートタブ終わり -->
+        </div><!-- タブコンテンツ終わり -->
     </main>
 
     <!-- フッター -->
     <footer class="fixed md:static bottom-0 left-0 right-0 bg-slate-50 shadow-lg">
-        <div class="max-w-4xl mx-auto px-4">
-            <!-- モード切り替えタブ -->
-            <div class="flex justify-center -mt-8 -mx-4">
-                <div class="flex w-full bg-slate-50 overflow-hidden">
-                    <button 
-                        onclick="switchMode('view')" 
-                        class="flex-1 px-6 py-2 text-sm font-medium mode-tab flex items-center justify-center" 
-                        id="viewTab"
-                    >
-                        <div class="flex items-center justify-center">
-                            <i class="fa-regular fa-eye mr-2"></i>表示モード
-                        </div>
-                    </button>
-                    <button 
-                        onclick="switchMode('edit')" 
-                        class="flex-1 px-6 py-2 text-sm font-medium mode-tab active flex items-center justify-center" 
-                        id="editTab"
-                    >
-                        <div class="flex items-center justify-center">
-                            <i class="fa-solid fa-pen mr-2"></i>編集モード
-                        </div>
-                    </button>
-                </div>
+        <!-- モード切り替えタブ（max-w-4xlを削除） -->
+        <div class="flex justify-center -mt-8">
+            <div class="flex w-screen bg-slate-50 overflow-hidden rounded-t-lg">
+                <button 
+                    onclick="switchMode('view')" 
+                    class="touch-feedback flex-1 px-6 py-2 text-sm font-medium mode-tab flex items-center justify-center" 
+                    id="viewTab"
+                >
+                    <div class="flex items-center justify-center">
+                        <i class="fa-regular fa-eye mr-2"></i>表示モード
+                    </div>
+                </button>
+                <button 
+                    onclick="switchMode('edit')" 
+                    class="touch-feedback flex-1 px-6 py-2 text-sm font-medium mode-tab active flex items-center justify-center" 
+                    id="editTab"
+                >
+                    <div class="flex items-center justify-center">
+                        <i class="fa-solid fa-pen mr-2"></i>編集モード
+                    </div>
+                </button>
             </div>
-
-            <!-- フッターの本体部分 -->
-            <div class="grid grid-cols-3 items-start h-20 text-sm pt-1">
+        </div>
+        
+        <!-- フッターの本体部分 -->
+        <div class="max-w-4xl mx-auto">
+            <div class="grid grid-cols-3 items-start h-20 text-sm pt-1 px-4">
                 <!-- 戻るボタン（左） -->
                 <div class="justify-self-start">
-                    <a href="{{ route('trips.participating') }}" class="flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
+                    <a href="{{ route('trips.participating') }}" class="touch-feedback flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
                         <i class="fa-solid fa-chevron-left text-slate-600"></i>
                     </a>
                 </div>
-
+    
                 <!-- 確定ボタン（中央） -->
                 <div class="justify-self-center w-full px-2 edit-mode-only" style="display: none;">
                     <button type="submit" 
                             onclick="submitAllForms()"
-                            class="flex items-center justify-center mx-auto w-32 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full transition-colors">
+                            class="touch-feedback flex items-center justify-center mx-auto w-32 h-10 bg-sky-500 hover:bg-sky-600 text-white rounded-full transition-colors">
                         <i class="fa-solid fa-check"></i>
                     </button>
                 </div>
-
+    
                 <!-- 右側の空のスペース -->
                 <div class="justify-self-end"></div>
             </div>
@@ -645,6 +787,94 @@
     </footer>
 
     <script>
+        // 通知関連の関数を統一
+        function showNotification(message, type = 'success') {
+            showToast(message, type);
+        }
+
+        // 既存の成功メッセージをカスタム通知に置き換え
+        function showSuccessNotification(message) {
+            showToast(message, 'success');
+        }
+
+        // タブ切り替え機能
+        function switchTab(tabName) {
+            // タブのスタイルを更新
+            document.querySelectorAll('.tab-link').forEach(tab => {
+                const isActive = tab.getAttribute('href') === `#${tabName}`;
+                tab.classList.toggle('border-sky-500', isActive);
+                tab.classList.toggle('text-sky-600', isActive);
+                tab.classList.toggle('border-transparent', !isActive);
+                tab.classList.toggle('text-gray-500', !isActive);
+            });
+
+            // コンテンツの表示/非表示を切り替え
+            document.querySelectorAll('.tab-pane').forEach(content => {
+                content.classList.toggle('hidden', content.id !== `${tabName}-content`);
+            });
+
+            // URLのハッシュを更新
+            history.pushState(null, '', `#${tabName}`);
+        }
+
+        // 旅程ノート追加のイベントリスナー
+        document.getElementById('itinerary-add-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: new FormData(this),
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    showToast('旅程ノートを追加しました', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    throw new Error('旅程ノートの追加に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('旅程ノートの追加に失敗しました', 'error');
+            });
+        });
+
+        // 旅程ノートの編集フォーム送信
+        document.querySelectorAll('form[data-edit-form]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const itineraryId = this.getAttribute('data-edit-form');
+                
+                fetch(`{{ url('trips/' . $trip->id . '/itinerary') }}/${itineraryId}`, {  // URLパスを修正
+                    method: 'PUT',
+                    body: new FormData(this),
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        throw new Error('旅程ノートの更新に失敗しました');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('旅程ノートの更新に失敗しました', 'error');
+                });
+            });
+        });
+
+        // 旅程ノートの削除
+        function deleteItinerary(id) {
+            createDeleteConfirmation('itinerary', id);
+        }
+
+
         // 日付フォーマットを修正する関数を追加
         function formatDateForInput(dateString) {
             if (!dateString) return '';
@@ -690,6 +920,7 @@
             if (isDayTrip) {
                 endDateContainer.classList.add('hidden');
                 dateLabel.textContent = '旅行日';
+                // 開始日が入力されている場合は終了日も同じ値に設定
                 if (startDate.value) {
                     endDate.value = startDate.value;
                 }
@@ -702,6 +933,16 @@
             validateDates();
             updateDateDisplay();
         }
+
+        // startDateの変更時にも終了日を更新
+        document.getElementById('startDate')?.addEventListener('change', function() {
+            const isDayTrip = document.getElementById('isDayTrip')?.checked;
+            if (isDayTrip) {
+                document.getElementById('endDate').value = this.value;
+            }
+            validateDates();
+            updateDateDisplay();
+        });
 
         function validateDates() {
             const startDate = document.getElementById('startDate');
@@ -851,13 +1092,19 @@
         function createDeleteConfirmation(type, id) {
             // 既存のトーストがあれば削除
             document.querySelector('.confirm-toast')?.remove();
+
+            const typeText = {
+                'comment': 'コメント',
+                'request': '要望',
+                'itinerary': '旅程ノート'
+            }[type];
             
             const toast = document.createElement('div');
             toast.className = `confirm-toast ${toastStyles.confirm}`;
             toast.innerHTML = `
                 <div class="${toastStyles.message}">
-                    <p class="text-slate-700">この${type === 'comment' ? 'コメント' : '要望'}を削除します。</p>
-                    <p class="text-slate-500 text-sm">削除された${type === 'comment' ? 'コメント' : '要望'}は復旧できません。</p>
+                    <p class="text-slate-700">この${typeText}を削除します。</p>
+                    <p class="text-slate-500 text-sm">削除された${typeText}は復旧できません。</p>
                 </div>
                 <div class="${toastStyles.buttonContainer}">
                     <button type="button" class="${toastStyles.button.cancel}" data-action="cancel">キャンセル</button>
@@ -877,10 +1124,9 @@
             document.body.appendChild(toast);
         }
 
-        // トースト通知の表示関数
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
-            toast.className = `fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg text-sm ${
+            toast.className = `fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full text-sm ${
                 type === 'success' ? 'bg-sky-500/90' : 'bg-rose-500/90'
             } text-white shadow-sm backdrop-blur-sm z-50`;
             toast.textContent = message;
@@ -891,9 +1137,16 @@
             }, 3000);
         }
 
+        // コピー完了通知
+        function copyShareLink() {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showNotification('リンクをコピーしました');
+            });
+        }
+
         // いいね機能の実装
         function toggleLike(requestId, button) {
-            fetch(`/requests/${requestId}/like`, {
+            fetch(`/trip-requests/${requestId}/like`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -957,6 +1210,21 @@
                 })
             );
 
+            // 日程フォームの更新を追加
+            const dateForm = document.getElementById('confirmedDateForm');
+            if (dateForm) {
+                promises.push(
+                    fetch(dateForm.action, {
+                        method: 'POST',
+                        body: new FormData(dateForm),
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    })
+                );
+            }
+
             // 要望の更新
             document.querySelectorAll('[data-type="request"] textarea').forEach(textarea => {
                 const requestId = textarea.closest('form').id.match(/\d+/)[0];
@@ -987,6 +1255,27 @@
                         body: JSON.stringify({ content: input.value })
                     })
                 );
+            });
+
+            // 旅程ノートの更新
+            document.querySelectorAll('[data-type="itinerary"]').forEach(form => {
+                const itineraryId = form.getAttribute('data-id');
+                if (form.style.display !== 'none') {  // 編集中のフォームのみ処理
+                    promises.push(
+                        fetch(`/trips/{{ $trip->id }}/itinerary/${itineraryId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                day_label: form.querySelector('[name="day_label"]').value,
+                                memo: form.querySelector('[name="memo"]').value
+                            })
+                        })
+                    );
+                }
             });
 
             Promise.all(promises)
@@ -1089,7 +1378,24 @@
             const contentDiv = document.getElementById(`${type}-content-${id}`);
             const formEl = document.getElementById(`${type}-edit-form-${id}`);
             
-            if (!contentDiv || !formEl) return;
+            if (!contentDiv || !formEl) {
+                // 旅程ノート用の処理
+                if (type === 'itinerary') {
+                    const viewMode = document.querySelector(`[data-id="${id}"] .view-mode`);
+                    const editMode = document.querySelector(`[data-id="${id}"] .edit-mode`);
+                    if (viewMode && editMode) {
+                        viewMode.style.display = 'none';
+                        editMode.style.display = 'block';
+                        
+                        const input = editMode.querySelector('textarea, input[type="text"]');
+                        if (input) {
+                            input.focus();
+                            input.selectionStart = input.selectionEnd = input.value.length;
+                        }
+                    }
+                }
+                return;
+            }
 
             contentDiv.style.display = 'none';
             formEl.style.display = 'block';
@@ -1186,7 +1492,13 @@
         // 実際の削除処理を行う関数
         function confirmDelete(type, id) {
             console.log('Confirming delete:', type, id);
-            const url = type === 'comment' ? `/request-comments/${id}` : `/trip-requests/${id}`;
+
+            const url = type === 'comment' 
+                ? `/request-comments/${id}` 
+                : type === 'request' 
+                    ? `/trip-requests/${id}`
+                    : `{{ url('trips/' . $trip->id . '/itinerary') }}/${id}`; // 旅程ノート用のURL
+
             console.log('Delete URL:', url);
 
             fetch(url, {
@@ -1212,10 +1524,16 @@
                         if (commentElement) {
                             commentElement.closest('.group').remove();
                         }
-                    } else {
+                    } else if (type === 'request') {
                         const requestElement = document.querySelector(`[data-type="request"][data-id="${id}"]`);
                         if (requestElement) {
                             requestElement.closest('.border-b').remove();
+                        }
+                    } else if (type === 'itinerary') {
+                        // 旅程ノートの要素を削除
+                        const itineraryElement = document.querySelector(`[data-id="${id}"]`);
+                        if (itineraryElement) {
+                            itineraryElement.remove();
                         }
                     }
                     showToast('削除しました', 'success');
@@ -1245,16 +1563,65 @@
                 toast.remove();
             }, 3000);
         }
+
+        // 要望の投稿
+        document.getElementById('request-add-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: new FormData(this),
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    throw new Error('要望の投稿に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('要望の投稿に失敗しました', 'error');
+            });
+        });  
     
         // 初期設定
         document.addEventListener('DOMContentLoaded', function() {
             // 初期表示は表示モード
             switchMode('view');
+
+            // URLのハッシュに基づいてタブを切り替え
+            const hash = window.location.hash.substring(1) || 'overview';
+            switchTab(hash);
             
             // 日付関連の初期設定
             const isDayTripCheckbox = document.getElementById('isDayTrip');
             const startDate = document.getElementById('startDate');
             const endDate = document.getElementById('endDate');
+            // フラッシュメッセージの自動非表示
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (successMessage) {
+                setTimeout(() => {
+                    successMessage.style.opacity = '0';
+                    setTimeout(() => {
+                        successMessage.remove();
+                    }, 500);
+                }, 3000);
+            }
+
+            if (errorMessage) {
+                setTimeout(() => {
+                    errorMessage.style.opacity = '0';
+                    setTimeout(() => {
+                        errorMessage.remove();
+                    }, 500);
+                }, 3000);
+            }
 
             if (startDate) {
                 startDate.value = formatDateForInput('{{ $trip->confirmed_start_date }}');

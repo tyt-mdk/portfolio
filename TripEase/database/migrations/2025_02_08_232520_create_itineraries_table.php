@@ -6,21 +6,20 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('itineraries', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('trip_id')->constrained()->onDelete('cascade');
+            $table->string('day_label');  // "1日目" や "事前準備" など自由なラベル
+            $table->text('memo');
+            $table->integer('order')->default(0);  // 表示順
+            $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
         });
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    
+    public function down()
     {
         Schema::dropIfExists('itineraries');
     }

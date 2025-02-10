@@ -2,9 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- レスポンシブ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"><!-- レスポンシブ -->
     <meta name="csrf-token" content="{{ csrf_token() }}"><!-- csrf-token -->
     <script src="https://kit.fontawesome.com/ef96165231.js" crossorigin="anonymous"></script><!-- FontAwesome -->
 
@@ -61,28 +60,36 @@
     <header>
     </header>
     <main class="flex-1 pb-20 md:pb-10">
-        <h1 class="text-xl md:text-2xl text-slate-950 mt-4 md:mt-6 mx-4 md:mx-6">{{ $trip->title }}の日程調整</h1>
+        <div class="max-w-7xl mx-auto px-4 md:px-6">  <!-- コンテナ追加 -->
+            <h1 class="text-xl md:text-2xl text-slate-950 mt-4 md:mt-6">
+                {{ $trip->title }}の日程調整
+            </h1>
+        </div>
 
         <!-- カレンダー -->
-        <div class="rounded shadow-md bg-slate-50 p-3 md:p-4 my-6 md:my-10 mx-4 md:mx-5">
-            <div id="calendar" class="text-sm md:text-base"></div>
+        <div class="max-w-5xl mx-auto">  <!-- 最大幅を制限 -->
+            <div class="rounded-lg shadow-md bg-slate-50 p-3 md:p-4 my-6 md:my-10 mx-4 md:mx-6">
+                <div id="calendar" class="text-sm md:text-base"></div>
+            </div>
         </div>
 
     </main>
 
     <!-- フッター -->
     <footer class="fixed md:static bottom-0 left-0 right-0 bg-slate-50 shadow-lg">
-        <div class="max-w-4xl mx-auto px-4">
-            <div class="grid grid-cols-3 items-start h-16 md:h-20 text-sm pt-1">
+        <div class="max-w-4xl mx-auto">
+            <div class="grid grid-cols-3 items-start h-20 text-sm pt-1 px-4">  <!-- h-16をh-20に、paddingを調整 -->
                 <!-- 戻るボタン -->
                 <div class="justify-self-start">
-                    <a href="{{ route('trips.each.planning', ['trip' => $trip->id]) }}" 
-                       class="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">
-                        <i class="fa-solid fa-chevron-left text-slate-600 text-sm md:text-base"></i>
+                    <a href="{{ route('trips.eachplanning', ['trip' => $trip->id]) }}" 
+                    class="flex items-center justify-center w-10 h-10 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">  <!-- サイズとクラスを統一 -->
+                        <i class="fa-solid fa-chevron-left text-slate-600"></i>  <!-- text-smとmd:text-baseを削除 -->
                     </a>
                 </div>
-                <div></div>
-                <div></div>
+                <!-- 中央のスペース -->
+                <div class="justify-self-center"></div>
+                <!-- 右側のスペース -->
+                <div class="justify-self-end"></div>
             </div>
         </div>
     </footer>
@@ -121,28 +128,36 @@
                 };
 
                 box.innerHTML = `
-                    <div class="space-y-4">
+                    <div class="space-y-4 w-[280px] md:w-[320px]">  <!-- 幅を固定 -->
                         <div class="flex justify-between items-center mb-4">
-                            <div class="text-sm">
+                            <div class="text-sm md:text-base">
                                 <span class="text-slate-600">判定を選択</span>
                                 <span class="text-slate-800 ml-2">${formatDate(candidateDate.date)}</span>
                             </div>
-                            <button type="button" class="cancel-btn text-slate-400 hover:text-slate-600">
+                            <button type="button" class="cancel-btn p-1 text-slate-400 hover:text-slate-600">
                                 <i class="fa-solid fa-xmark"></i>
                             </button>
                         </div>
-                        <div class="flex gap-4 justify-center">
+                        <div class="grid grid-cols-4 gap-2">  <!-- flexからgridに変更 -->
                             <button type="button" data-judgement="〇" 
-                                class="judgement-btn px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">〇</button>
+                                class="judgement-btn h-12 bg-emerald-50 text-emerald-600 border-2 border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors">
+                                <span class="text-lg">〇</span>
+                            </button>
                             <button type="button" data-judgement="△" 
-                                class="judgement-btn px-6 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors">△</button>
+                                class="judgement-btn h-12 bg-amber-50 text-amber-600 border-2 border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
+                                <span class="text-lg">△</span>
+                            </button>
                             <button type="button" data-judgement="×" 
-                                class="judgement-btn px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">×</button>
+                                class="judgement-btn h-12 bg-rose-50 text-rose-600 border-2 border-rose-200 rounded-lg hover:bg-rose-100 transition-colors">
+                                <span class="text-lg">×</span>
+                            </button>
                             <button type="button" data-judgement="" 
-                                class="judgement-btn px-6 py-2 bg-slate-300 text-white rounded-md hover:bg-slate-400 transition-colors">クリア</button>
+                                class="judgement-btn h-12 bg-slate-50 text-slate-600 border-2 border-slate-200 rounded-lg hover:bg-slate-100 transition-colors text-sm">
+                                クリア
+                            </button>
                         </div>
-                        <div class="pt-2 border-t border-slate-200">
-                            <button type="button" class="delete-date-btn w-full px-4 py-2 text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors">
+                        <div class="pt-3 border-t border-slate-200">
+                            <button type="button" class="delete-date-btn w-full px-4 py-2.5 text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors">
                                 <i class="fa-regular fa-trash-can mr-2"></i>この候補日を削除
                             </button>
                         </div>

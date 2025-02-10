@@ -62,4 +62,8 @@ class Trip extends Model
     {
         return $this->hasMany(CandidateDate::class);
     }
+    public function itineraries()
+    {
+        return $this->hasMany(Itinerary::class)->orderBy('order');
+    }
 }

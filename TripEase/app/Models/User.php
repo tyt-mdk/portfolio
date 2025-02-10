@@ -49,4 +49,8 @@ class User extends Authenticatable
                     ->withTimestamps()
                     ->orderBy('updated_at', 'desc');  // 最新の更新順に並び替え
     }
+    public function createdTrips()
+    {
+        return $this->hasMany(Trip::class, 'creator_id');
+    }
 }

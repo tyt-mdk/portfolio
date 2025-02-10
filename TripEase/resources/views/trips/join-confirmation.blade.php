@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>旅行計画への参加 - TripEase</title>
     @vite('resources/css/app.css')
@@ -24,15 +24,15 @@
                             <div class="bg-sky-50 text-sky-700 p-4 rounded-md mb-4">
                                 すでにこの旅行計画に参加しています。
                             </div>
-                            <a href="{{ route('trips.each.planning', ['trip' => $trip->id]) }}" 
-                               class="block w-full text-center bg-sky-500 text-white py-2 px-4 rounded hover:bg-sky-600">
+                            <a href="{{ route('trips.eachplanning', ['trip' => $trip->id]) }}" 
+                               class="touch-feedback block w-full text-center bg-sky-500 text-white py-2 px-4 rounded hover:bg-sky-600">
                                 旅行計画へ
                             </a>
                         @else
                             <form method="POST" action="{{ route('trips.join.confirm', $trip->share_token) }}">
                                 @csrf
                                 <button type="submit" 
-                                        class="w-full bg-sky-500 text-white py-2 px-4 rounded hover:bg-sky-600">
+                                        class="touch-feedback w-full bg-sky-500 text-white py-2 px-4 rounded hover:bg-sky-600">
                                     この旅行計画に参加する
                                 </button>
                             </form>
@@ -42,14 +42,14 @@
                             旅行計画に参加するにはログインが必要です。
                         </div>
                         <a href="{{ route('login') }}" 
-                           class="block w-full text-center bg-sky-500 text-white py-2 px-4 rounded hover:bg-sky-600">
+                           class="touch-feedback block w-full text-center bg-sky-500 text-white py-2 px-4 rounded hover:bg-sky-600">
                             ログインする
                         </a>
                     @endif
                 </div>
 
                 <div class="text-center">
-                    <a href="{{ route('trips.each.planning', ['trip' => $trip->id]) }}" class="text-slate-600 hover:text-slate-800">
+                    <a href="{{ route('trips.eachplanning', ['trip' => $trip->id]) }}" class="touch-feedback text-slate-600 hover:text-slate-800">
                         トップページに戻る
                     </a>
                     
@@ -57,7 +57,7 @@
                         <form method="POST" action="{{ route('logout') }}" class="mt-4">
                             @csrf
                             <button type="submit" 
-                                    class="text-slate-600 hover:text-slate-800">
+                                    class="touch-feedback text-slate-600 hover:text-slate-800">
                                 ログアウト
                             </button>
                         </form>

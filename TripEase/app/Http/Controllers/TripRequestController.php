@@ -95,4 +95,19 @@ class TripRequestController extends Controller
             ], 500);
         }
     }
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'content' => 'required|string|max:1000',
+            'trip_id' => 'required|exists:trips,id'
+        ]);
+
+        $tripRequest = TripRequest::create([
+            'trip_id' => $validated['trip_id'],
+            'user_id' => Auth::id(),
+            'content' => $validated['content']
+        ]);
+
+        return back()->with('success', '要望を投稿しました。');
+    }
 }

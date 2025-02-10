@@ -10,3 +10,8 @@
         font-size: 14px;
     }
 }
+
+/* モバイル用の基本設定を追加 */
+.touch-feedback {
+    -webkit-tap-highlight-color: transparent;
+}
